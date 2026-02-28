@@ -149,11 +149,16 @@ export default function Index() {
                 onClick={() => {
                   speak(`Going to ${cat.name}`).then(() => navigate(`/category/${cat.id}`));
                 }}
-                className="glass rounded-xl p-6 text-center transition-all duration-300 hover:shadow-neon-lg hover:scale-105 group"
+                className="glass rounded-xl overflow-hidden text-center transition-all duration-300 hover:shadow-neon-lg hover:scale-105 group"
               >
-                <span className="text-5xl block mb-3 group-hover:animate-float">{cat.emoji}</span>
-                <h3 className="font-display text-sm font-semibold text-foreground mb-1">{cat.name}</h3>
-                <p className="text-xs text-muted-foreground">{cat.description}</p>
+                <div className="h-32 overflow-hidden">
+                  <img src={cat.image} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" />
+                </div>
+                <div className="p-4">
+                  <span className="text-2xl block mb-1">{cat.emoji}</span>
+                  <h3 className="font-display text-sm font-semibold text-foreground mb-1">{cat.name}</h3>
+                  <p className="text-xs text-muted-foreground">{cat.description}</p>
+                </div>
               </motion.button>
             ))}
           </div>
