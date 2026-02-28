@@ -174,7 +174,7 @@ export default function Checkout() {
 
         {/* Action hint */}
         {step === "review" && items.length > 0 && (
-          <div className="text-center mt-6">
+          <div className="text-center mt-6 space-y-3">
             <button
               onClick={askName}
               className="glass px-6 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all"
@@ -182,7 +182,29 @@ export default function Checkout() {
               <ShoppingCart className="w-4 h-4 inline mr-2" />
               Start Voice Checkout
             </button>
-            <p className="text-xs text-muted-foreground mt-2">or press <kbd className="glass px-1.5 py-0.5 rounded text-primary">B</kbd></p>
+            <p className="text-xs text-muted-foreground">or press <kbd className="glass px-1.5 py-0.5 rounded text-primary">B</kbd></p>
+          </div>
+        )}
+
+        {/* Confirm button */}
+        {step === "confirm" && (
+          <div className="text-center mt-6 space-y-3">
+            <button
+              onClick={placeOrder}
+              className="glass px-8 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all"
+            >
+              <CheckCircle className="w-4 h-4 inline mr-2" />
+              Confirm Order
+            </button>
+            <button
+              onClick={() => {
+                setStatus("Order cancelled.");
+                speak("Order cancelled. Going back to home.").then(() => navigate("/"));
+              }}
+              className="block mx-auto glass px-6 py-2 rounded-xl font-display text-xs text-muted-foreground hover:text-foreground transition-all"
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mic, Eye } from "lucide-react";
+import { ArrowLeft, Mic, Eye, ShoppingCart } from "lucide-react";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
 import { getCategoryById, getProductsByCategory } from "@/data/products";
@@ -123,8 +123,21 @@ export default function Category() {
           ))}
         </div>
 
+        {/* Checkout button */}
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => {
+              speak("Proceeding to checkout.").then(() => navigate("/checkout"));
+            }}
+            className="glass px-6 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Go to Checkout
+          </button>
+        </div>
+
         {/* Controls hint */}
-        <div className="mt-8 text-center space-y-1 text-xs text-muted-foreground">
+        <div className="mt-6 text-center space-y-1 text-xs text-muted-foreground">
           <p>👁 Blink once → Voice command · 👁👁 Double blink → Read product details</p>
           <p>🎤 "Next" · "Take order" · "Checkout" · "Go back"</p>
         </div>

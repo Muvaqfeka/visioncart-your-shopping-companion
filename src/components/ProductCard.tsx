@@ -1,5 +1,8 @@
 import { motion } from "framer-motion";
+import { ShoppingCart } from "lucide-react";
 import type { Product } from "@/data/products";
+import { useCart } from "@/context/CartContext";
+import { speak } from "@/hooks/useSpeech";
 
 interface Props {
   product: Product;
@@ -8,6 +11,14 @@ interface Props {
 }
 
 export default function ProductCard({ product, isActive, index = 0 }: Props) {
+  const { addItem } = useCart();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addItem(product);
+    speak(`${product.name} added to cart.`);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -44,6 +55,15 @@ export default function ProductCard({ product, isActive, index = 0 }: Props) {
             {product.available ? "In Stock" : "Sold Out"}
           </span>
         </div>
+        {product.available && (
+          <button
+            onClick={handleAddToCart}
+            className="w-full mt-2 glass px-3 py-2 rounded-lg text-xs font-display font-semibold text-primary hover:shadow-neon transition-all flex items-center justify-center gap-1.5"
+          >
+            <ShoppingCart className="w-3.5 h-3.5" />
+            Add to Cart
+          </button>
+        )}
       </div>
     </motion.div>
   );
