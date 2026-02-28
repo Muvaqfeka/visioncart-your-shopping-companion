@@ -23,7 +23,7 @@ export default function Category() {
   const readProduct = (index: number) => {
     const p = products[index];
     if (!p) return;
-    const text = `${p.name} by ${p.brand}. Price: $${p.price.toFixed(2)}. Features: ${p.features.join(", ")}. ${p.available ? "Available" : "Currently out of stock"}.`;
+    const text = `${p.name} by ${p.brand}. Price: ${p.price} rupees. Features: ${p.features.join(", ")}. ${p.available ? "Available" : "Currently out of stock"}.`;
     setStatus(`Reading: ${p.name}`);
     speak(text);
   };
