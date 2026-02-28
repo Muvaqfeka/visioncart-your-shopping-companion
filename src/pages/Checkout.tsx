@@ -41,7 +41,7 @@ export default function Checkout() {
 
   const confirmOrder = (n: string, p: string) => {
     setStep("confirm");
-    const summary = `Order summary: ${itemCount} items, total $${total.toFixed(2)}. Name: ${n}. Phone: ${p}. Say confirm to place order, or cancel to go back.`;
+    const summary = `Order summary: ${itemCount} items, total ${total.toLocaleString("en-IN")} rupees. Name: ${n}. Phone: ${p}. Say confirm to place order, or cancel to go back.`;
     setStatus("Confirm your order");
     speak(summary).then(() => {
       startListening((text) => {
@@ -74,9 +74,9 @@ export default function Checkout() {
         speak("Your cart is empty. Going back to home.").then(() => navigate("/"));
         return;
       }
-      const itemNames = items.map((i) => `${i.product.name}, $${i.product.price.toFixed(2)}`).join(". ");
+      const itemNames = items.map((i) => `${i.product.name}, ${i.product.price.toLocaleString("en-IN")} rupees`).join(". ");
       speak(
-        `Welcome to checkout. You have ${itemCount} items in your cart. ${itemNames}. Total: $${total.toFixed(2)}. Blink once or press B to begin voice-guided checkout.`
+        `Welcome to checkout. You have ${itemCount} items in your cart. ${itemNames}. Total: ${total.toLocaleString("en-IN")} rupees. Blink once or press B to begin voice-guided checkout.`
       );
       setStatus("Review your cart, then blink to proceed");
     }
@@ -133,17 +133,17 @@ export default function Checkout() {
             <motion.div exit={{ opacity: 0, height: 0 }} className="space-y-3 mb-6">
               {items.map((item) => (
                 <div key={item.product.id} className="glass rounded-lg p-4 flex items-center gap-3">
-                  <span className="text-3xl">{item.product.emoji}</span>
+                  <img src={item.product.image} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{item.product.name}</p>
                     <p className="text-xs text-muted-foreground">{item.product.brand} · Qty: {item.quantity}</p>
                   </div>
-                  <span className="font-display text-sm text-primary font-bold">${(item.product.price * item.quantity).toFixed(2)}</span>
+                  <span className="font-display text-sm text-primary font-bold">₹{(item.product.price * item.quantity).toLocaleString("en-IN")}</span>
                 </div>
               ))}
               <div className="glass rounded-lg p-4 flex items-center justify-between">
                 <span className="font-display text-sm text-muted-foreground">Total</span>
-                <span className="font-display text-xl text-primary font-bold text-glow">${total.toFixed(2)}</span>
+                <span className="font-display text-xl text-primary font-bold text-glow">₹{total.toLocaleString("en-IN")}</span>
               </div>
             </motion.div>
           )}

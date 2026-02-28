@@ -3,8 +3,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 // Eye Aspect Ratio landmarks for MediaPipe FaceMesh (468 points)
 const RIGHT_EYE = { p1: 33, p2: 160, p3: 158, p4: 133, p5: 153, p6: 144 };
 const LEFT_EYE = { p1: 362, p2: 385, p3: 387, p4: 263, p5: 373, p6: 380 };
-const EAR_THRESHOLD = 0.21;
-const DOUBLE_BLINK_WINDOW = 650;
+const EAR_THRESHOLD = 0.23;
+const DOUBLE_BLINK_WINDOW = 900;
 const BLINK_MIN_DURATION = 50;
 
 interface Point { x: number; y: number; z: number }

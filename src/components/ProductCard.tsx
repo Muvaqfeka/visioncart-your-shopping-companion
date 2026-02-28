@@ -17,8 +17,13 @@ export default function ProductCard({ product, isActive, index = 0 }: Props) {
         isActive ? "shadow-neon-lg ring-2 ring-primary/60 scale-[1.02]" : "hover:shadow-neon"
       }`}
     >
-      <div className="h-36 bg-gradient-to-br from-primary/15 to-accent/25 flex items-center justify-center">
-        <span className="text-6xl">{product.emoji}</span>
+      <div className="h-36 bg-gradient-to-br from-primary/10 to-accent/15 overflow-hidden">
+        <img
+          src={product.image}
+          alt={product.name}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
       </div>
       <div className="p-4 space-y-2">
         <h3 className="font-display text-sm font-semibold text-foreground leading-tight truncate">
@@ -27,7 +32,7 @@ export default function ProductCard({ product, isActive, index = 0 }: Props) {
         <p className="text-xs text-muted-foreground">{product.brand}</p>
         <div className="flex items-center justify-between">
           <span className="font-display text-lg font-bold text-primary text-glow">
-            ${product.price.toFixed(2)}
+            ₹{product.price.toLocaleString("en-IN")}
           </span>
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
