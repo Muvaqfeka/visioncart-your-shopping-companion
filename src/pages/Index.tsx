@@ -16,8 +16,8 @@ export default function Index() {
   const welcomed = useRef(false);
 
   const handleSingleBlink = () => {
-    setStatus("Listening for your command...");
-    speak("Listening. Please say a category name. Electronics, Groceries, or Personal Care.").then(() => {
+    setStatus("🎤 Listening for your command...");
+    speak("Listening. Say a category name like Electronics, Groceries, or Personal Care.").then(() => {
       startListening((text) => {
         const cat = findCategoryByVoice(text);
         if (cat) {
@@ -88,7 +88,6 @@ export default function Index() {
               playsInline
               muted
             />
-            {/* Scan overlay */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-full">
               <div className="w-full h-1 bg-primary/40 animate-scan" />
             </div>
@@ -168,7 +167,7 @@ export default function Index() {
         <div className="mt-12 text-center space-y-2 text-xs text-muted-foreground max-w-lg mx-auto">
           <p>👁 <strong className="text-foreground">Single Blink</strong> or press <kbd className="glass px-1.5 py-0.5 rounded text-primary">B</kbd> — Activate voice search</p>
           <p>👁👁 <strong className="text-foreground">Double Blink</strong> or press <kbd className="glass px-1.5 py-0.5 rounded text-primary">B</kbd> twice — Hear instructions</p>
-          <p>🎤 Say <strong className="text-foreground">"Next"</strong> to browse · <strong className="text-foreground">"Take order"</strong> to add to cart</p>
+          <p>🎤 Say <strong className="text-foreground">"Next"</strong> to browse · <strong className="text-foreground">"Add to cart"</strong> to add · <strong className="text-foreground">"View cart"</strong> to hear cart</p>
         </div>
       </div>
     </div>

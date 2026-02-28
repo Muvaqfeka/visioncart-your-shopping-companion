@@ -13,6 +13,10 @@ export function speak(text: string, rate = 0.92): Promise<void> {
   });
 }
 
+export function stopSpeaking() {
+  window.speechSynthesis.cancel();
+}
+
 export function useSpeechRecognition() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -26,30 +30,48 @@ export function useSpeechRecognition() {
       return;
     }
 
+    // Stop any ongoing speech & previous recognition
     window.speechSynthesis.cancel();
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch {}
+    }
+
     callbackRef.current = onResult || null;
 
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-US";
+    recognition.maxAlternatives = 3;
 
     recognition.onresult = (event: any) => {
       const result = event.results[0][0].transcript;
       setTranscript(result);
+      setIsListening(false);
       callbackRef.current?.(result);
     };
 
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (e: any) => {
+      console.log("Speech recognition error:", e.error);
+      setIsListening(false);
+    };
 
-    recognition.start();
-    setIsListening(true);
-    recognitionRef.current = recognition;
+    // Small delay to ensure TTS is fully stopped before mic activates
+    setTimeout(() => {
+      try {
+        recognition.start();
+        setIsListening(true);
+        recognitionRef.current = recognition;
+      } catch (e) {
+        console.log("Recognition start error:", e);
+        setIsListening(false);
+      }
+    }, 300);
   }, []);
 
   const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
+    try { recognitionRef.current?.stop(); } catch {}
     setIsListening(false);
   }, []);
 
