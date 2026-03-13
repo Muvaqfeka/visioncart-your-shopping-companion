@@ -6,6 +6,7 @@ import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
 import { getCategoryById, getProductsByCategory } from "@/data/products";
 import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
 import ProductCard from "@/components/ProductCard";
 
 export default function Category() {
@@ -13,6 +14,7 @@ export default function Category() {
   const navigate = useNavigate();
   const { addItem, items, total, itemCount } = useCart();
   const { isListening, startListening } = useSpeechRecognition();
+  const { language, t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const [status, setStatus] = useState("");
   const announced = useRef(false);
@@ -23,55 +25,109 @@ export default function Category() {
   const readProduct = (index: number) => {
     const p = products[index];
     if (!p) return;
-    const text = `${p.name} by ${p.brand}. Price: ${p.price.toLocaleString("en-IN")} rupees. Features: ${p.features.join(", ")}. ${p.available ? "Available" : "Currently out of stock"}.`;
-    setStatus(`Reading: ${p.name}`);
+    const text = language === "ta"
+      ? `${p.name}, ${p.brand}. விலை: ${p.price.toLocaleString("en-IN")} ரூபாய். அம்சங்கள்: ${p.features.join(", ")}. ${p.available ? "கிடைக்கும்" : "தற்போது கிடைக்கவில்லை"}.`
+      : `${p.name} by ${p.brand}. Price: ${p.price.toLocaleString("en-IN")} rupees. Features: ${p.features.join(", ")}. ${p.available ? "Available" : "Currently out of stock"}.`;
+    setStatus(`${language === "ta" ? "படிக்கிறது" : "Reading"}: ${p.name}`);
     speak(text);
   };
 
   const readCart = () => {
     if (itemCount === 0) {
-      speak("Your cart is empty. Say add to cart to add the current product.");
-      setStatus("Cart is empty");
+      const msg = language === "ta"
+        ? "உங்கள் கார்ட் காலியாக உள்ளது. கார்ட்டில் சேர் என்று சொல்லி பொருளைச் சேர்க்கவும்."
+        : "Your cart is empty. Say add to cart to add the current product.";
+      speak(msg);
+      setStatus(t("cartEmpty"));
       return;
     }
-    const cartItems = items.map(i => `${i.product.name}, quantity ${i.quantity}, ${(i.product.price * i.quantity).toLocaleString("en-IN")} rupees`).join(". ");
-    const text = `You have ${itemCount} items in your cart. ${cartItems}. Total: ${total.toLocaleString("en-IN")} rupees. Say checkout to proceed.`;
-    setStatus(`Cart: ${itemCount} items — ₹${total.toLocaleString("en-IN")}`);
+    const cartItems = items.map(i => `${i.product.name}, ${language === "ta" ? "எண்ணிக்கை" : "quantity"} ${i.quantity}, ${(i.product.price * i.quantity).toLocaleString("en-IN")} ${t("rupees")}`).join(". ");
+    const text = language === "ta"
+      ? `உங்கள் கார்ட்டில் ${itemCount} பொருட்கள் உள்ளன. ${cartItems}. ${t("total")}: ${total.toLocaleString("en-IN")} ரூபாய். செக்அவுட் என்று சொல்லுங்கள்.`
+      : `You have ${itemCount} items in your cart. ${cartItems}. Total: ${total.toLocaleString("en-IN")} rupees. Say checkout to proceed.`;
+    setStatus(`${t("cart")}: ${itemCount} ${t("items")} — ₹${total.toLocaleString("en-IN")}`);
     speak(text);
   };
 
   const handleVoiceCommand = (text: string) => {
     const lower = text.toLowerCase();
-    if (lower.includes("next")) {
+
+    // Help
+    if (lower.includes("help") || lower.includes("உதவி")) {
+      setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help commands");
+      speak(t("helpCommands"));
+      return;
+    }
+
+    // Read product
+    if (lower.includes("read product") || lower.includes("read this") || lower.includes("பொருளைப் படி") || lower.includes("படி")) {
+      readProduct(activeIndex);
+      return;
+    }
+
+    // Next
+    if (lower.includes("next") || lower.includes("அடுத்தது")) {
       const next = (activeIndex + 1) % products.length;
       setActiveIndex(next);
       readProduct(next);
-    } else if (lower.includes("previous") || lower.includes("back")) {
+      return;
+    }
+
+    // Previous
+    if (lower.includes("previous") || lower.includes("back") || lower.includes("முந்தையது")) {
       const prev = (activeIndex - 1 + products.length) % products.length;
       setActiveIndex(prev);
       readProduct(prev);
-    } else if (lower.includes("add to cart") || lower.includes("take order") || lower.includes("add") || lower.includes("order")) {
+      return;
+    }
+
+    // Add to cart
+    if (lower.includes("add to cart") || lower.includes("add") || lower.includes("order") || lower.includes("take order") || lower.includes("கார்ட்டில் சேர்") || lower.includes("சேர்")) {
       const p = products[activeIndex];
       if (p) {
         addItem(p);
-        setStatus(`✅ ${p.name} added to cart!`);
-        speak(`${p.name} added to cart. You now have ${itemCount + 1} items. Say next to continue, add to cart for another, or checkout to pay. Blink once to give a voice command.`);
+        const msg = language === "ta"
+          ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன.`
+          : `${p.name} added to cart. You now have ${itemCount + 1} items. Say next to continue, add to cart for another, or checkout to pay.`;
+        setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
+        speak(msg);
       }
-    } else if (lower.includes("view cart") || lower.includes("read cart") || lower.includes("read my cart") || lower.includes("my cart") || lower.includes("show cart")) {
-      readCart();
-    } else if (lower.includes("checkout") || lower.includes("pay") || lower.includes("cart")) {
-      speak("Proceeding to checkout.").then(() => navigate("/checkout"));
-    } else if (lower.includes("home") || lower.includes("go back")) {
-      speak("Going back to home.").then(() => navigate("/"));
-    } else {
-      setStatus("Command not recognized. Try: Next, Add to Cart, View Cart, Checkout");
-      speak("Sorry, I didn't understand. You can say Next, Add to Cart, View Cart, or Checkout.");
+      return;
     }
+
+    // Go to cart / View cart
+    if (lower.includes("go to cart") || lower.includes("கார்ட்டுக்கு செல்")) {
+      speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Going to cart page.").then(() => navigate("/checkout"));
+      return;
+    }
+
+    if (lower.includes("view cart") || lower.includes("read cart") || lower.includes("read my cart") || lower.includes("my cart") || lower.includes("show cart") || lower.includes("கார்ட் பார்") || lower.includes("என் கார்ட்")) {
+      readCart();
+      return;
+    }
+
+    // Checkout
+    if (lower.includes("checkout") || lower.includes("pay") || lower.includes("செக்அவுட்")) {
+      speak(language === "ta" ? "செக்அவுட்டுக்கு செல்கிறது." : "Proceeding to checkout.").then(() => navigate("/checkout"));
+      return;
+    }
+
+    // Home / go back
+    if (lower.includes("home") || lower.includes("go back") || lower.includes("திரும்பு")) {
+      speak(language === "ta" ? "முகப்பு பக்கத்திற்கு திரும்புகிறது." : "Going back to home.").then(() => navigate("/"));
+      return;
+    }
+
+    setStatus(language === "ta" ? "கட்டளை புரியவில்லை. முயற்சிக்கவும்: அடுத்தது, கார்ட்டில் சேர், கார்ட் பார், உதவி" : "Command not recognized. Try: Next, Add to Cart, View Cart, Help");
+    speak(language === "ta"
+      ? "மன்னிக்கவும், புரியவில்லை. அடுத்தது, கார்ட்டில் சேர், கார்ட் பார், அல்லது உதவி என்று சொல்லுங்கள்."
+      : "Sorry, I didn't understand. You can say Next, Add to Cart, View Cart, Read Product, or Help."
+    );
   };
 
   const handleSingleBlink = () => {
-    setStatus("🎤 Listening...");
-    speak("Listening.").then(() => {
+    setStatus("🎤 " + t("listening"));
+    speak(language === "ta" ? "கேட்கிறேன்." : "Listening.").then(() => {
       startListening(handleVoiceCommand);
     });
   };
@@ -89,8 +145,11 @@ export default function Category() {
     if (!announced.current && category) {
       announced.current = true;
       setTimeout(() => {
-        speak(`You are now inside the ${category.name} page. ${products.length} products available. Blink once for voice commands like Next, Add to Cart, or View Cart. Double blink to hear product details.`);
-        setStatus(`${category.name} — ${products.length} products`);
+        const msg = language === "ta"
+          ? `நீங்கள் இப்போது ${category.name} பக்கத்தில் இருக்கிறீர்கள். ${products.length} பொருட்கள் கிடைக்கும். குரல் கட்டளைகளுக்கு ஒரு முறை கண் சிமிட்டுங்கள். பொருள் விவரங்கள் கேட்க இரு முறை கண் சிமிட்டுங்கள்.`
+          : `You are now inside the ${category.name} page. ${products.length} products available. Blink once for voice commands like Next, Add to Cart, Read Product, View Cart, or Help. Double blink to hear product details.`;
+        speak(msg);
+        setStatus(`${category.name} — ${products.length} ${t("products")}`);
       }, 500);
     }
   }, [category, products.length]);
@@ -115,9 +174,8 @@ export default function Category() {
             <h1 className="font-display text-xl font-bold text-foreground text-glow">
               {category.emoji} {category.name}
             </h1>
-            <p className="text-xs text-muted-foreground">{products.length} products</p>
+            <p className="text-xs text-muted-foreground">{products.length} {t("products")}</p>
           </div>
-          {/* Cart badge */}
           {itemCount > 0 && (
             <button
               onClick={() => navigate("/checkout")}
@@ -127,7 +185,6 @@ export default function Category() {
               {itemCount}
             </button>
           )}
-          {/* Mini camera */}
           <div className="w-12 h-12 rounded-full overflow-hidden border border-glow shadow-neon">
             <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" playsInline muted />
           </div>
@@ -147,8 +204,8 @@ export default function Category() {
               <button
                 onClick={() => {
                   addItem(product);
-                  setStatus(`✅ ${product.name} added!`);
-                  speak(`${product.name} added to cart.`);
+                  setStatus(`✅ ${product.name} ${t("addedToCart")}!`);
+                  speak(language === "ta" ? `${product.name} கார்ட்டில் சேர்க்கப்பட்டது.` : `${product.name} added to cart.`);
                 }}
                 className="absolute bottom-2 right-2 glass p-2 rounded-full shadow-neon hover:shadow-neon-lg transition-all z-10"
               >
@@ -165,37 +222,44 @@ export default function Category() {
               const p = products[activeIndex];
               if (p) {
                 addItem(p);
-                setStatus(`✅ ${p.name} added!`);
-                speak(`${p.name} added to cart.`);
+                setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
+                speak(language === "ta" ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது.` : `${p.name} added to cart.`);
               }
             }}
             className="glass px-5 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Add to Cart
+            {t("addToCart")}
           </button>
           <button
             onClick={() => readCart()}
             className="glass px-5 py-3 rounded-xl font-display text-sm text-muted-foreground hover:text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
           >
             <ShoppingCart className="w-4 h-4" />
-            View Cart
+            {t("viewCart")}
+          </button>
+          <button
+            onClick={() => navigate("/checkout")}
+            className="glass px-5 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            {t("goToCart")}
           </button>
           <button
             onClick={() => {
-              speak("Proceeding to checkout.").then(() => navigate("/checkout"));
+              speak(language === "ta" ? "செக்அவுட்டுக்கு செல்கிறது." : "Proceeding to checkout.").then(() => navigate("/checkout"));
             }}
             className="glass px-5 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
           >
             <ShoppingCart className="w-4 h-4" />
-            Checkout
+            {t("checkout")}
           </button>
         </div>
 
         {/* Controls hint */}
         <div className="mt-6 text-center space-y-1 text-xs text-muted-foreground">
-          <p>👁 Blink once → Voice command · 👁👁 Double blink → Read product</p>
-          <p>🎤 "Next" · "Add to cart" · "View cart" · "Checkout" · "Go back"</p>
+          <p>👁 {t("singleBlink")} → {language === "ta" ? "குரல் கட்டளை" : "Voice command"} · 👁👁 {t("doubleBlink")} → {t("readProduct")}</p>
+          <p>🎤 "{t("next")}" · "{t("addToCart")}" · "{t("viewCart")}" · "{t("readProduct")}" · "{t("help")}" · "{t("goToCart")}"</p>
         </div>
       </div>
     </div>
