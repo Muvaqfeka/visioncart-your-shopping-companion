@@ -114,7 +114,7 @@ export default function Index() {
       welcomed.current = true;
       setTimeout(() => {
         setStatus(t("chooseLanguage"));
-        speak("Welcome to Smart Vision Cart. Please say Tamil for Tamil, or English to continue in English. Blink once or press B to choose.").then(() => {
+        speak("Welcome to Smart Vision Cart. Shop with independence, confidence, and ease. Your voice and eyes are all you need. Please say Tamil for Tamil, or English to continue in English. Blink once or press B to choose.").then(() => {
           const catNames = categories.map(c => c.name).join(", ");
           speak(`Available categories are: ${catNames}.`);
         });
