@@ -34,13 +34,13 @@ export default function Index() {
       setLanguageChosen(true);
       setStatus("தமிழ் தேர்ந்தெடுக்கப்பட்டது ✓");
       const catNames = "எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், மருந்துகள்";
-      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. வரவேற்கிறோம். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
+      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம். சுதந்திரமாகவும் தன்னம்பிக்கையுடனும் எளிதாகவும் ஷாப்பிங் செய்யுங்கள். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
     } else {
       setLanguage("en");
       setLanguageChosen(true);
       setStatus("English selected ✓");
       const catNames = categories.map(c => c.name).join(", ");
-      speak(`English selected. Welcome! Available categories are: ${catNames}. Blink once to start voice search.`);
+      speak(`English selected. Welcome to Smart Vision Cart! Shop with independence, confidence, and ease. Available categories are: ${catNames}. Blink once to start voice search.`);
     }
   };
 
@@ -114,7 +114,7 @@ export default function Index() {
       welcomed.current = true;
       setTimeout(() => {
         setStatus(t("chooseLanguage"));
-        speak("Welcome to Smart Vision Cart. Please say Tamil for Tamil, or English to continue in English. Blink once or press B to choose.").then(() => {
+        speak("Welcome to Smart Vision Cart. Shop with independence, confidence, and ease. Your voice and eyes are all you need. Please say Tamil for Tamil, or English to continue in English. Blink once or press B to choose.").then(() => {
           const catNames = categories.map(c => c.name).join(", ");
           speak(`Available categories are: ${catNames}.`);
         });
