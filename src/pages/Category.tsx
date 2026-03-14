@@ -18,6 +18,7 @@ export default function Category() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [status, setStatus] = useState("");
   const announced = useRef(false);
+  const autoReadDone = useRef(false);
 
   const category = getCategoryById(categoryId || "");
   const products = getProductsByCategory(categoryId || "");
@@ -26,10 +27,28 @@ export default function Category() {
     const p = products[index];
     if (!p) return;
     const text = language === "ta"
-      ? `${p.name}, ${p.brand}. விலை: ${p.price.toLocaleString("en-IN")} ரூபாய். அம்சங்கள்: ${p.features.join(", ")}. ${p.available ? "கிடைக்கும்" : "தற்போது கிடைக்கவில்லை"}.`
-      : `${p.name} by ${p.brand}. Price: ${p.price.toLocaleString("en-IN")} rupees. Features: ${p.features.join(", ")}. ${p.available ? "Available" : "Currently out of stock"}.`;
+      ? `${index + 1} வது பொருள். ${p.name}, ${p.brand}. விலை: ${p.price.toLocaleString("en-IN")} ரூபாய். அம்சங்கள்: ${p.features.join(", ")}. ${p.available ? "கிடைக்கும்" : "தற்போது கிடைக்கவில்லை"}.`
+      : `Product ${index + 1}. ${p.name} by ${p.brand}. Price: ${p.price.toLocaleString("en-IN")} rupees. Features: ${p.features.join(", ")}. ${p.available ? "Available" : "Currently out of stock"}.`;
     setStatus(`${language === "ta" ? "படிக்கிறது" : "Reading"}: ${p.name}`);
-    speak(text);
+    return speak(text);
+  };
+
+  // Auto-read first product when entering category
+  const autoReadProducts = async () => {
+    if (autoReadDone.current || products.length === 0) return;
+    autoReadDone.current = true;
+
+    const introMsg = language === "ta"
+      ? `நீங்கள் இப்போது ${category?.name} பக்கத்தில் இருக்கிறீர்கள். ${products.length} பொருட்கள் கிடைக்கும். முதல் பொருளைப் படிக்கிறேன்.`
+      : `You are now in ${category?.name}. ${products.length} products available. Reading the first product.`;
+    setStatus(`${category?.name} — ${products.length} ${t("products")}`);
+    await speak(introMsg);
+    await readProduct(0);
+
+    const hint = language === "ta"
+      ? "அடுத்த பொருளுக்கு ஒரு முறை கண் சிமிட்டி அடுத்தது என்று சொல்லுங்கள். கார்ட்டில் சேர் என்று சொல்லி சேர்க்கலாம். உதவி என்று சொல்லி அனைத்து கட்டளைகளையும் கேட்கலாம்."
+      : "Blink once and say Next for the next product. Say Add to Cart to add this item. Say Help to hear all commands.";
+    await speak(hint);
   };
 
   const readCart = () => {
@@ -49,6 +68,12 @@ export default function Category() {
     speak(text);
   };
 
+  // Find product by name from voice
+  const findProductByName = (text: string) => {
+    const lower = text.toLowerCase();
+    return products.findIndex(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.brand.toLowerCase()));
+  };
+
   const handleVoiceCommand = (text: string) => {
     const lower = text.toLowerCase();
 
@@ -59,7 +84,15 @@ export default function Category() {
       return;
     }
 
-    // Read product
+    // Read product by name
+    const productIndex = findProductByName(text);
+    if (productIndex >= 0 && !lower.includes("add") && !lower.includes("cart") && !lower.includes("next") && !lower.includes("help")) {
+      setActiveIndex(productIndex);
+      readProduct(productIndex);
+      return;
+    }
+
+    // Read current product
     if (lower.includes("read product") || lower.includes("read this") || lower.includes("பொருளைப் படி") || lower.includes("படி")) {
       readProduct(activeIndex);
       return;
@@ -87,16 +120,17 @@ export default function Category() {
       if (p) {
         addItem(p);
         const msg = language === "ta"
-          ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன.`
-          : `${p.name} added to cart. You now have ${itemCount + 1} items. Say next to continue, add to cart for another, or checkout to pay.`;
+          ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன. அடுத்தது என்று சொல்லி தொடரலாம்.`
+          : `${p.name} added to cart. You now have ${itemCount + 1} items. Say next to continue, or go to cart to checkout.`;
         setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
         speak(msg);
       }
       return;
     }
 
-    // Go to cart / View cart
+    // Go to cart / View cart → navigate to checkout
     if (lower.includes("go to cart") || lower.includes("கார்ட்டுக்கு செல்")) {
+      setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
       speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Going to cart page.").then(() => navigate("/checkout"));
       return;
     }
@@ -145,11 +179,7 @@ export default function Category() {
     if (!announced.current && category) {
       announced.current = true;
       setTimeout(() => {
-        const msg = language === "ta"
-          ? `நீங்கள் இப்போது ${category.name} பக்கத்தில் இருக்கிறீர்கள். ${products.length} பொருட்கள் கிடைக்கும். குரல் கட்டளைகளுக்கு ஒரு முறை கண் சிமிட்டுங்கள். பொருள் விவரங்கள் கேட்க இரு முறை கண் சிமிட்டுங்கள்.`
-          : `You are now inside the ${category.name} page. ${products.length} products available. Blink once for voice commands like Next, Add to Cart, Read Product, View Cart, or Help. Double blink to hear product details.`;
-        speak(msg);
-        setStatus(`${category.name} — ${products.length} ${t("products")}`);
+        autoReadProducts();
       }, 500);
     }
   }, [category, products.length]);
