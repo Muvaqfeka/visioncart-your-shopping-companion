@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Mic, Eye, Camera, Volume2, Globe } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
@@ -17,6 +17,7 @@ export default function Index() {
   const [status, setStatus] = useState("Initializing...");
   const welcomed = useRef(false);
   const [languageChosen, setLanguageChosen] = useState(false);
+  const [showWelcomeCard, setShowWelcomeCard] = useState(true);
 
   const readAllCategories = () => {
     const catNames = categories.map((c) =>
@@ -32,15 +33,17 @@ export default function Index() {
     if (lower.includes("tamil") || lower.includes("தமிழ்")) {
       setLanguage("ta");
       setLanguageChosen(true);
+      setShowWelcomeCard(false);
       setStatus("தமிழ் தேர்ந்தெடுக்கப்பட்டது ✓");
       const catNames = "எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், மருந்துகள்";
-      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம். சுதந்திரமாகவும் தன்னம்பிக்கையுடனும் எளிதாகவும் ஷாப்பிங் செய்யுங்கள். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
+      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்! நீங்கள் சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யலாம். உங்கள் குரலும் கண்களும் மட்டுமே போதும். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
     } else {
       setLanguage("en");
       setLanguageChosen(true);
+      setShowWelcomeCard(false);
       setStatus("English selected ✓");
       const catNames = categories.map(c => c.name).join(", ");
-      speak(`English selected. Welcome to Smart Vision Cart! Shop with independence, confidence, and ease. Available categories are: ${catNames}. Blink once to start voice search.`);
+      speak(`English selected. Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Your voice and eyes are all you need. No touch required. Available categories are: ${catNames}. Blink once or press B to start voice search.`);
     }
   };
 
@@ -72,9 +75,9 @@ export default function Index() {
         }
 
         // Go to cart command
-        if (lower.includes("go to cart") || lower.includes("கார்ட்டுக்கு செல்") || lower.includes("cart")) {
+        if (lower.includes("go to cart") || lower.includes("view cart") || lower.includes("கார்ட்டுக்கு செல்") || lower.includes("cart") || lower.includes("கார்ட்")) {
           setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
-          speak(language === "ta" ? "கார்ட்டுக்கு செல்கிறது." : "Going to cart.").then(() => navigate("/checkout"));
+          speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Opening your cart now.").then(() => navigate("/checkout"));
           return;
         }
 
@@ -84,7 +87,7 @@ export default function Index() {
             ? cat.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : cat.id === "groceries" ? "மளிகை பொருட்கள்" : cat.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
             : cat.name;
           setStatus(`${t("navigatingTo")} ${catName}...`);
-          speak(`${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
+          speak(`${language === "ta" ? "அருமை!" : "Great choice!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
         } else {
           setStatus(t("categoryNotFound"));
           speak(language === "ta"
@@ -99,8 +102,8 @@ export default function Index() {
   const handleDoubleBlink = () => {
     const catNames = readAllCategories();
     const msg = language === "ta"
-      ? `ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம். குரல் தேடலை இயக்க ஒரு முறை கண் சிமிட்டி, ஒரு வகையின் பெயரைச் சொல்லுங்கள். கிடைக்கும் வகைகள்: ${catNames}. B விசையை அழுத்தி குறுக்குவழியாகவும் பயன்படுத்தலாம்.`
-      : `Welcome to Smart Vision Cart. Blink once to activate voice search and say a category name. Available categories are: ${catNames}. You can also press the B key as a blink shortcut.`;
+      ? `ஸ்மார்ட் விஷன் கார்ட்டில் நீங்கள் சுதந்திரமாக ஷாப்பிங் செய்யலாம். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை இயக்க ஒரு முறை கண் சிமிட்டுங்கள்.`
+      : `Welcome to Smart Vision Cart. You can shop independently with just your voice and eyes. Available categories are: ${catNames}. Blink once to start.`;
     speak(msg);
   };
 
@@ -114,11 +117,11 @@ export default function Index() {
       welcomed.current = true;
       setTimeout(() => {
         setStatus(t("chooseLanguage"));
-        speak("Welcome to Smart Vision Cart. Shop with independence, confidence, and ease. Your voice and eyes are all you need. Please say Tamil for Tamil, or English to continue in English. Blink once or press B to choose.").then(() => {
+        speak("Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Your voice and eyes are all you need. No help needed, no touch required. Please say Tamil for Tamil, or English to continue in English. You can also blink once or press B to choose.").then(() => {
           const catNames = categories.map(c => c.name).join(", ");
-          speak(`Available categories are: ${catNames}.`);
+          speak(`We have ${categories.length} categories for you: ${catNames}. Choose your language to get started!`);
         });
-      }, 5500); // After splash screen
+      }, 5500);
     }
   }, []);
 
@@ -154,7 +157,7 @@ export default function Index() {
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <header className="flex items-center justify-between mb-10">
+        <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Eye className="w-8 h-8 text-primary animate-neon-pulse" />
             <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground text-glow">
@@ -162,12 +165,12 @@ export default function Index() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {/* Language toggle */}
             <button
               onClick={() => {
                 const newLang = language === "en" ? "ta" : "en";
                 setLanguage(newLang);
                 setLanguageChosen(true);
+                setShowWelcomeCard(false);
                 setStatus(newLang === "ta" ? "தமிழ் தேர்ந்தெடுக்கப்பட்டது ✓" : "English selected ✓");
                 speak(newLang === "ta" ? "தமிழ் தேர்ந்தெடுக்கப்பட்டது." : "English selected.");
               }}
@@ -179,17 +182,57 @@ export default function Index() {
             {itemCount > 0 && (
               <button
                 onClick={() => navigate("/checkout")}
-                className="glass px-4 py-2 rounded-lg text-primary font-display text-sm shadow-neon"
+                className="glass px-4 py-2 rounded-lg text-primary font-display text-sm shadow-neon flex items-center gap-2"
               >
+                <ShoppingCart className="w-4 h-4" />
                 {t("cart")} ({itemCount})
               </button>
             )}
           </div>
         </header>
 
+        {/* Welcome Card */}
+        <AnimatePresence>
+          {showWelcomeCard && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="glass rounded-2xl p-6 mb-8 text-center border border-primary/20"
+            >
+              <Sparkles className="w-8 h-8 text-primary mx-auto mb-3 animate-pulse" />
+              <h2 className="font-display text-xl font-bold text-foreground text-glow mb-2">
+                {language === "ta" ? "ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்!" : "Welcome to Smart Vision Cart!"}
+              </h2>
+              <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
+                {language === "ta"
+                  ? "சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யுங்கள். உங்கள் குரலும் கண்களும் மட்டுமே போதும்."
+                  : "Shop with complete independence, confidence, and ease. Your voice and eyes are all you need. No touch required."}
+              </p>
+              <div className="flex justify-center gap-3">
+                <button
+                  onClick={() => handleLanguageChoice("english")}
+                  className="glass px-5 py-2.5 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all"
+                >
+                  🇬🇧 English
+                </button>
+                <button
+                  onClick={() => handleLanguageChoice("tamil")}
+                  className="glass px-5 py-2.5 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all"
+                >
+                  🇮🇳 தமிழ்
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                {language === "ta" ? "அல்லது கண் சிமிட்டி குரலில் சொல்லுங்கள்" : "or blink once & say your language"}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Camera Feed + Status */}
-        <div className="flex flex-col items-center gap-6 mb-12">
-          <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden border-2 border-glow shadow-neon-lg">
+        <div className="flex flex-col items-center gap-5 mb-10">
+          <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-glow shadow-neon-lg">
             <video
               ref={videoRef}
               className="w-full h-full object-cover scale-x-[-1]"
@@ -220,8 +263,8 @@ export default function Index() {
           {/* Status text */}
           <motion.p
             key={status}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-primary font-display text-sm text-center text-glow max-w-md"
           >
             {status}
@@ -255,7 +298,7 @@ export default function Index() {
                 transition={{ delay: 0.3 + i * 0.1 }}
                 onClick={() => {
                   const catName = getCatDisplayName(cat);
-                  speak(`${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
+                  speak(`${language === "ta" ? "அருமை!" : "Great!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
                 }}
                 className="glass rounded-xl overflow-hidden text-center transition-all duration-300 hover:shadow-neon-lg hover:scale-105 group"
               >
@@ -273,7 +316,7 @@ export default function Index() {
         </section>
 
         {/* Instructions */}
-        <div className="mt-12 text-center space-y-2 text-xs text-muted-foreground max-w-lg mx-auto">
+        <div className="mt-10 text-center space-y-2 text-xs text-muted-foreground max-w-lg mx-auto">
           <p>👁 <strong className="text-foreground">{t("singleBlink")}</strong> {language === "ta" ? "அல்லது" : "or press"} <kbd className="glass px-1.5 py-0.5 rounded text-primary">B</kbd> — {t("activateVoice")}</p>
           <p>👁👁 <strong className="text-foreground">{t("doubleBlink")}</strong> — {t("hearInstructions")}</p>
           <p>🎤 <strong className="text-foreground">"{t("next")}"</strong> · <strong className="text-foreground">"{t("addToCart")}"</strong> · <strong className="text-foreground">"{t("viewCart")}"</strong> · <strong className="text-foreground">"{t("help")}"</strong></p>

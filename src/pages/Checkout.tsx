@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingCart, CheckCircle, Mic, Phone, MapPin, Clock, Package, Truck, Home, Eye } from "lucide-react";
+import { ArrowLeft, CheckCircle, Mic, Phone, MapPin, Clock, Package, Truck, Home, Eye, Search } from "lucide-react";
 import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
 import { useCart } from "@/context/CartContext";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
@@ -17,6 +17,11 @@ interface DeliveryTimelineItem {
   done: boolean;
 }
 
+// Helper: read phone number digit by digit
+function spellOutPhone(phone: string): string {
+  return phone.replace(/[^0-9]/g, "").split("").join(" ");
+}
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, total, clearCart, itemCount } = useCart();
@@ -29,6 +34,7 @@ export default function Checkout() {
   const [status, setStatus] = useState("");
   const [callProgress, setCallProgress] = useState(0);
   const [deliveryTimeline, setDeliveryTimeline] = useState<DeliveryTimelineItem[]>([]);
+  const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
   const started = useRef(false);
 
   const askName = () => {
@@ -38,7 +44,10 @@ export default function Checkout() {
       startListening((text) => {
         setName(text);
         setStatus(`${t("name")}: ${text}`);
-        speak(language === "ta" ? `${text} என்று கேட்டேன். இப்போது உங்கள் தொலைபேசி எண்ணைச் சொல்லுங்கள்.` : `I heard ${text}. Now, please say your phone number.`).then(askPhone);
+        speak(language === "ta"
+          ? `உங்கள் பெயர் ${text} என்று பதிவு செய்யப்பட்டது. நன்றி! இப்போது உங்கள் தொலைபேசி எண்ணைச் சொல்லுங்கள்.`
+          : `Your name is ${text}. Got it! Now, please say your phone number.`
+        ).then(askPhone);
       });
     });
   };
@@ -48,8 +57,12 @@ export default function Checkout() {
     setStatus(t("sayPhone"));
     startListening((text) => {
       setPhone(text);
+      const spelled = spellOutPhone(text);
       setStatus(`${t("phone")}: ${text}`);
-      speak(language === "ta" ? `தொலைபேசி எண் பெறப்பட்டது: ${text}. சரிபார்ப்பு அழைப்பை தொடங்குகிறது.` : `Phone number received: ${text}. Initiating verification call now.`).then(() => simulateCall(text));
+      speak(language === "ta"
+        ? `தொலைபேசி எண் பெறப்பட்டது: ${spelled}. சரிபார்ப்பு அழைப்பை தொடங்குகிறது.`
+        : `Phone number received: ${spelled}. Initiating verification call now.`
+      ).then(() => simulateCall(text));
     });
   };
 
@@ -58,21 +71,27 @@ export default function Checkout() {
       speak(language === "ta" ? "பெயர் மற்றும் தொலைபேசி எண் தேவை." : "Please enter both name and phone number.");
       return;
     }
+    const spelled = spellOutPhone(phone);
     setStatus(language === "ta" ? "சரிபார்ப்பு அழைப்பை தொடங்குகிறது..." : "Starting verification call...");
-    speak(language === "ta" ? "சரிபார்ப்பு அழைப்பை தொடங்குகிறது." : "Initiating verification call.").then(() => simulateCall(phone));
+    speak(language === "ta"
+      ? `பெயர்: ${name}. தொலைபேசி எண்: ${spelled}. சரிபார்ப்பு அழைப்பை தொடங்குகிறது.`
+      : `Name: ${name}. Phone number: ${spelled}. Initiating verification call.`
+    ).then(() => simulateCall(phone));
   };
 
   const simulateCall = (phoneNum: string) => {
     setStep("calling");
+    const spelled = spellOutPhone(phoneNum);
     setStatus(`📞 ${language === "ta" ? `${phoneNum} ஐ அழைக்கிறது...` : `Calling ${phoneNum} for verification...`}`);
     setCallProgress(0);
 
     const stages = [
-      { progress: 20, msg: language === "ta" ? "டயல் செய்கிறது..." : "Dialing...", delay: 1000 },
-      { progress: 40, msg: language === "ta" ? "இணைக்கப்பட்டது! அடையாளத்தை சரிபார்க்கிறது..." : "Connected! Verifying identity...", delay: 2500 },
-      { progress: 60, msg: language === "ta" ? "டெலிவரி முகவரியைக் கேட்கிறது..." : "Asking for delivery address...", delay: 4000 },
-      { progress: 80, msg: language === "ta" ? "பணம் செலுத்தும் முறையை உறுதிப்படுத்துகிறது..." : "Confirming payment mode...", delay: 5500 },
-      { progress: 100, msg: language === "ta" ? "சரிபார்ப்பு முடிந்தது!" : "Verification complete!", delay: 7000 },
+      { progress: 15, msg: language === "ta" ? `${spelled} க்கு டயல் செய்கிறது...` : `Dialing ${spelled}...`, delay: 1000 },
+      { progress: 30, msg: language === "ta" ? "ரிங்... ரிங்... ரிங்..." : "Ringing... Ringing... Ringing...", delay: 2500 },
+      { progress: 50, msg: language === "ta" ? "இணைக்கப்பட்டது! அடையாளத்தை சரிபார்க்கிறது..." : "Connected! Verifying your identity...", delay: 4000 },
+      { progress: 70, msg: language === "ta" ? "டெலிவரி முகவரியைக் கேட்கிறது..." : "Asking for delivery address...", delay: 5500 },
+      { progress: 85, msg: language === "ta" ? "பணம் செலுத்தும் முறை: கேஷ் ஆன் டெலிவரி உறுதி" : "Payment mode: Cash on Delivery confirmed", delay: 7000 },
+      { progress: 100, msg: language === "ta" ? "சரிபார்ப்பு முடிந்தது! ✅" : "Verification complete! ✅", delay: 8500 },
     ];
 
     stages.forEach(({ progress, msg, delay }) => {
@@ -83,21 +102,25 @@ export default function Checkout() {
     });
 
     setTimeout(() => {
-      speak(language === "ta" ? "சரிபார்ப்பு அழைப்பு முடிந்தது. உங்கள் டெலிவரி முகவரியைச் சொல்லுங்கள்." : "Verification call complete. Please say your delivery address for confirmation.").then(() => {
+      speak(language === "ta"
+        ? "சரிபார்ப்பு அழைப்பு வெற்றிகரமாக முடிந்தது. இப்போது உங்கள் டெலிவரி முகவரியைச் சொல்லுங்கள்."
+        : "Verification call completed successfully. Now, please say your delivery address."
+      ).then(() => {
         startListening((addressText) => {
           setAddress(addressText);
           setStatus(`${language === "ta" ? "முகவரி" : "Address"}: ${addressText}`);
           confirmOrder(name, phoneNum, addressText);
         });
       });
-    }, 8000);
+    }, 9500);
   };
 
   const confirmOrder = (n: string, p: string, addr: string) => {
     setStep("confirm");
+    const spelled = spellOutPhone(p);
     const summary = language === "ta"
-      ? `ஆர்டர் சுருக்கம்: ${itemCount} பொருட்கள், மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய். பெயர்: ${n}. தொலைபேசி: ${p}. டெலிவரி முகவரி: ${addr}. ஆர்டர் வைக்க இரு முறை கண் சிமிட்டுங்கள் அல்லது உறுதி என்று சொல்லுங்கள்.`
-      : `Order summary: ${itemCount} items, total ${total.toLocaleString("en-IN")} rupees. Name: ${n}. Phone: ${p}. Delivery address: ${addr}. Double blink or say confirm to place order. Say cancel to go back.`;
+      ? `ஆர்டர் சுருக்கம்: ${itemCount} பொருட்கள், மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய். பெயர்: ${n}. தொலைபேசி: ${spelled}. டெலிவரி முகவரி: ${addr}. ஆர்டர் வைக்க இரு முறை கண் சிமிட்டுங்கள் அல்லது உறுதி என்று சொல்லுங்கள்.`
+      : `Order summary: ${itemCount} items, total ${total.toLocaleString("en-IN")} rupees. Name: ${n}. Phone: ${spelled}. Delivery address: ${addr}. Double blink or say confirm to place your order. Say cancel to go back.`;
     setStatus(language === "ta" ? "ஆர்டர் உறுதிசெய்ய இரு முறை கண் சிமிட்டுங்கள்" : "Double blink or say Confirm to place order");
     speak(summary).then(() => {
       startListening((text) => {
@@ -115,21 +138,52 @@ export default function Checkout() {
   const placeOrder = () => {
     setStep("done");
     clearCart();
-    setStatus(language === "ta" ? "ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது! 🎉" : "Order placed successfully! 🎉");
+    setStatus(language === "ta" ? "🎉 ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது!" : "🎉 Order placed successfully!");
 
     const now = new Date();
-    setDeliveryTimeline([
+    const timeline: DeliveryTimelineItem[] = [
       { label: t("orderConfirmed"), icon: <CheckCircle className="w-4 h-4" />, time: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), done: true },
       { label: t("packed"), icon: <Package className="w-4 h-4" />, time: new Date(now.getTime() + 2 * 3600000).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), done: false },
       { label: t("outForDelivery"), icon: <Truck className="w-4 h-4" />, time: new Date(now.getTime() + 5 * 3600000).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), done: false },
       { label: t("delivered"), icon: <Home className="w-4 h-4" />, time: new Date(now.getTime() + 8 * 3600000).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }), done: false },
-    ]);
+    ];
+    setDeliveryTimeline(timeline);
+    setActiveTimelineIndex(0);
 
     speak(
       language === "ta"
-        ? "உங்கள் ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது! 8 மணி நேரத்தில் டெலிவரி. ஸ்மார்ட் விஷன் கார்ட்டில் ஷாப்பிங் செய்ததற்கு நன்றி."
-        : "Your order has been placed successfully! Estimated delivery in 8 hours. Thank you for shopping with Smart Vision Cart."
-    );
+        ? `உங்கள் ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது! வாழ்த்துக்கள்! தற்போதைய நிலை: ஆர்டர் உறுதிசெய்யப்பட்டது. 8 மணி நேரத்தில் டெலிவரி எதிர்பார்க்கப்படுகிறது. உங்கள் ஆர்டர் எங்கு உள்ளது என்று தெரிய, "என் ஆர்டர் எங்கே" என்று சொல்லுங்கள். ஸ்மார்ட் விஷன் கார்ட்டில் ஷாப்பிங் செய்ததற்கு நன்றி.`
+        : `Congratulations! Your order has been placed successfully! Current status: Order Confirmed at ${timeline[0].time}. Estimated delivery in 8 hours by ${timeline[3].time}. You can say "where is my order" anytime to track it. Thank you for shopping with Smart Vision Cart!`
+    ).then(() => {
+      // Listen for tracking commands after order
+      listenForTrackingCommands();
+    });
+  };
+
+  const listenForTrackingCommands = () => {
+    startListening((text) => {
+      const lower = text.toLowerCase();
+      if (lower.includes("where") || lower.includes("order") || lower.includes("track") || lower.includes("status") || lower.includes("எங்கே") || lower.includes("நிலை")) {
+        readOrderStatus();
+      } else if (lower.includes("home") || lower.includes("shop") || lower.includes("continue") || lower.includes("முகப்பு")) {
+        speak(language === "ta" ? "முகப்பு பக்கத்திற்கு செல்கிறது." : "Going to home page.").then(() => navigate("/"));
+      } else {
+        speak(language === "ta"
+          ? "உங்கள் ஆர்டர் நிலையை அறிய 'என் ஆர்டர் எங்கே' என்று சொல்லுங்கள், அல்லது 'ஷாப்பிங் தொடர' என்று சொல்லுங்கள்."
+          : "Say 'where is my order' to track your order, or say 'continue shopping' to go back."
+        ).then(() => listenForTrackingCommands());
+      }
+    });
+  };
+
+  const readOrderStatus = () => {
+    const currentStep = deliveryTimeline[activeTimelineIndex];
+    const nextStep = deliveryTimeline[activeTimelineIndex + 1];
+    const msg = language === "ta"
+      ? `உங்கள் ஆர்டர் நிலை: ${currentStep?.label}, ${currentStep?.time} மணிக்கு. ${nextStep ? `அடுத்த நிலை: ${nextStep.label}, சுமார் ${nextStep.time} மணிக்கு எதிர்பார்க்கப்படுகிறது.` : "உங்கள் பொருள் டெலிவர் செய்யப்பட்டது!"}`
+      : `Your order status: ${currentStep?.label} at ${currentStep?.time}. ${nextStep ? `Next step: ${nextStep.label}, expected around ${nextStep.time}.` : "Your item has been delivered!"}`;
+    setStatus(`📦 ${currentStep?.label}`);
+    speak(msg).then(() => listenForTrackingCommands());
   };
 
   const handleSingleBlink = () => {
@@ -148,6 +202,11 @@ export default function Checkout() {
           }
         });
       });
+    } else if (step === "done") {
+      setStatus("🎤 " + t("listening"));
+      speak(language === "ta" ? "கேட்கிறேன். என் ஆர்டர் எங்கே என்று சொல்லுங்கள்." : "Listening. Say where is my order to track it.").then(() => {
+        listenForTrackingCommands();
+      });
     }
   };
 
@@ -159,6 +218,8 @@ export default function Checkout() {
         const itemNames = items.map(i => `${i.product.name}, ${i.product.price.toLocaleString("en-IN")} ${t("rupees")}`).join(". ");
         speak(`${language === "ta" ? "உங்களிடம்" : "You have"} ${itemCount} ${t("items")}. ${itemNames}. ${t("total")}: ${total.toLocaleString("en-IN")} ${t("rupees")}.`);
       }
+    } else if (step === "done") {
+      readOrderStatus();
     }
   };
 
@@ -178,8 +239,8 @@ export default function Checkout() {
       const itemNames = items.map((i) => `${i.product.name}, ${i.product.price.toLocaleString("en-IN")} ${t("rupees")}`).join(". ");
       speak(
         language === "ta"
-          ? `செக்அவுட்டுக்கு வரவேற்கிறோம். உங்கள் கார்ட்டில் ${itemCount} பொருட்கள் உள்ளன. ${itemNames}. மொத்தம்: ${total.toLocaleString("en-IN")} ரூபாய். குரல் செக்அவுட் தொடங்க கண் சிமிட்டுங்கள் அல்லது B அழுத்துங்கள்.`
-          : `Welcome to checkout. You have ${itemCount} items in your cart. ${itemNames}. Total: ${total.toLocaleString("en-IN")} rupees. Blink once or press B to begin voice-guided checkout. Or type your name and phone below.`
+          ? `செக்அவுட்டுக்கு வரவேற்கிறோம். உங்கள் கார்ட்டில் ${itemCount} பொருட்கள் உள்ளன. ${itemNames}. மொத்தம்: ${total.toLocaleString("en-IN")} ரூபாய். குரல் செக்அவுட் தொடங்க கண் சிமிட்டுங்கள் அல்லது கீழே உங்கள் பெயர் மற்றும் எண்ணை தட்டச்சு செய்யுங்கள்.`
+          : `Welcome to checkout! You have ${itemCount} items in your cart. ${itemNames}. Total: ${total.toLocaleString("en-IN")} rupees. Blink once or press B to begin voice checkout. Or you can type your name and phone number below.`
       );
       setStatus(language === "ta" ? "கார்ட்டை பாருங்கள், பிறகு தொடரவும்" : "Review your cart, then blink to proceed or type details below");
     }
@@ -227,14 +288,17 @@ export default function Checkout() {
 
         {/* Call progress */}
         {step === "calling" && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-4 mb-6">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3 mb-3">
-              <Phone className="w-5 h-5 text-primary animate-pulse" />
+              <div className="relative">
+                <Phone className="w-5 h-5 text-primary" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-ping" />
+              </div>
               <span className="text-sm font-display text-foreground">
-                {language === "ta" ? "சரிபார்ப்பு அழைப்பு நடைபெறுகிறது" : "Verification Call in Progress"}
+                {language === "ta" ? "📞 சரிபார்ப்பு அழைப்பு நடைபெறுகிறது" : "📞 Verification Call in Progress"}
               </span>
             </div>
-            <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+            <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
               <motion.div
                 className="h-full bg-primary rounded-full shadow-neon"
                 animate={{ width: `${callProgress}%` }}
@@ -250,14 +314,14 @@ export default function Checkout() {
           {step !== "done" && items.length > 0 && (
             <motion.div exit={{ opacity: 0, height: 0 }} className="space-y-3 mb-6">
               {items.map((item) => (
-                <div key={item.product.id} className="glass rounded-lg p-4 flex items-center gap-3">
+                <motion.div key={item.product.id} className="glass rounded-lg p-4 flex items-center gap-3" whileHover={{ scale: 1.02 }}>
                   <img src={item.product.image} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{item.product.name}</p>
                     <p className="text-xs text-muted-foreground">{item.product.brand} · {language === "ta" ? "எண்ணிக்கை" : "Qty"}: {item.quantity}</p>
                   </div>
                   <span className="font-display text-sm text-primary font-bold">₹{(item.product.price * item.quantity).toLocaleString("en-IN")}</span>
-                </div>
+                </motion.div>
               ))}
               <div className="glass rounded-lg p-4 flex items-center justify-between">
                 <span className="font-display text-sm text-muted-foreground">{t("total")}</span>
@@ -267,9 +331,9 @@ export default function Checkout() {
           )}
         </AnimatePresence>
 
-        {/* Manual input for name and phone (visible during review, name, phone steps) */}
+        {/* Manual input for name and phone */}
         {(step === "review" || step === "name" || step === "phone") && items.length > 0 && (
-          <div className="glass rounded-lg p-4 mb-6 space-y-3">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-lg p-4 mb-6 space-y-3">
             <h3 className="text-sm font-display text-foreground mb-2">
               {language === "ta" ? "📝 விவரங்களை தட்டச்சு செய்யுங்கள்" : "📝 Type your details"} <span className="text-muted-foreground text-xs">({t("orType")})</span>
             </h3>
@@ -299,7 +363,7 @@ export default function Checkout() {
               <Phone className="w-4 h-4" />
               {language === "ta" ? "சரிபார்ப்பு அழைப்பை தொடங்கு" : "Start Verification Call"}
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Collected info */}
@@ -324,43 +388,72 @@ export default function Checkout() {
 
         {/* Done state with delivery timeline */}
         {step === "done" && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-8">
-            <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h2 className="font-display text-2xl font-bold text-foreground text-glow mb-2">{t("orderPlaced")}</h2>
-            <p className="text-muted-foreground mb-8">{t("orderProcessing")}</p>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-6">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, delay: 0.2 }}
+            >
+              <CheckCircle className="w-20 h-20 text-primary mx-auto mb-4" />
+            </motion.div>
+            <h2 className="font-display text-2xl font-bold text-foreground text-glow mb-1">{t("orderPlaced")}</h2>
+            <p className="text-muted-foreground mb-2">{t("orderProcessing")}</p>
+            <p className="text-xs text-primary mb-6">
+              {language === "ta"
+                ? "🎤 'என் ஆர்டர் எங்கே' என்று சொல்லுங்கள்"
+                : '🎤 Say "where is my order" to track'}
+            </p>
 
             {deliveryTimeline.length > 0 && (
               <div className="text-left max-w-sm mx-auto">
-                <h3 className="font-display text-sm text-primary mb-4 text-center">📦 {t("deliveryTimeline")}</h3>
+                <h3 className="font-display text-sm text-primary mb-4 text-center flex items-center justify-center gap-2">
+                  <Search className="w-4 h-4" />
+                  {t("deliveryTimeline")}
+                </h3>
                 <div className="space-y-0">
                   {deliveryTimeline.map((item, i) => (
-                    <div key={i} className="flex items-start gap-3">
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.2 }}
+                      className="flex items-start gap-3"
+                    >
                       <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${item.done ? "bg-primary text-primary-foreground shadow-neon" : "glass text-muted-foreground"}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${item.done ? "bg-primary text-primary-foreground shadow-neon" : "glass text-muted-foreground"}`}>
                           {item.icon}
                         </div>
                         {i < deliveryTimeline.length - 1 && (
                           <div className={`w-0.5 h-10 ${item.done ? "bg-primary" : "bg-muted"}`} />
                         )}
                       </div>
-                      <div className="pt-1">
+                      <div className="pt-1.5">
                         <p className={`text-sm font-medium ${item.done ? "text-primary" : "text-muted-foreground"}`}>{item.label}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" /> {item.time}
                         </p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </div>
             )}
 
-            <button
-              onClick={() => navigate("/")}
-              className="mt-8 glass px-6 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all"
-            >
-              {t("continueShopping")}
-            </button>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <button
+                onClick={() => readOrderStatus()}
+                className="glass px-6 py-2.5 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
+              >
+                <Search className="w-4 h-4" />
+                {language === "ta" ? "என் ஆர்டர் எங்கே?" : "Where is my order?"}
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="glass px-6 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all"
+              >
+                {t("continueShopping")}
+              </button>
+            </div>
           </motion.div>
         )}
 
