@@ -334,8 +334,16 @@ export default function Checkout() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2 text-center">{callProgress}% {language === "ta" ? "முடிந்தது" : "complete"}</p>
+        )}
+
+        {/* Payment selection */}
+        {step === "payment" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-4 mb-6">
+            <PaymentPanel amount={total} payeeName="Smart Vision Cart" onConfirm={handlePaymentChosen} />
           </motion.div>
         )}
+
+
 
         {/* Cart items */}
         <AnimatePresence>
