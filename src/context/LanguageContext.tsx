@@ -153,6 +153,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
 
+  // Sync speech module so speak()/recognition use the right locale.
+  useEffect(() => { setSpeechLanguage(language); }, [language]);
+
+
   const t = useCallback(
     (key: keyof typeof translations.en) => {
       return translations[language][key] || translations.en[key] || key;
