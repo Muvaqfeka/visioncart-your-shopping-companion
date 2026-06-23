@@ -131,13 +131,7 @@ export default function Index() {
 
   const getCatDisplayName = (cat: typeof categories[0]) => {
     if (language !== "ta") return cat.name;
-    switch (cat.id) {
-      case "electronics": return "எலக்ட்ரானிக்ஸ்";
-      case "groceries": return "மளிகை பொருட்கள்";
-      case "personal-care": return "அழகு பொருட்கள்";
-      case "medicines": return "மருந்துகள்";
-      default: return cat.name;
-    }
+    return taName(cat.id);
   };
 
   const getCatDescription = (cat: typeof categories[0]) => {
