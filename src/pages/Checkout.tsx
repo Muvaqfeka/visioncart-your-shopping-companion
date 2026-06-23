@@ -278,6 +278,7 @@ export default function Checkout() {
     { key: "name", label: t("name") },
     { key: "phone", label: t("phone") },
     { key: "calling", label: t("verify") },
+    { key: "payment", label: t("payment") },
     { key: "confirm", label: t("confirm") },
     { key: "done", label: t("done") },
   ];
