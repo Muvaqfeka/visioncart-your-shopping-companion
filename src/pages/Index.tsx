@@ -141,6 +141,8 @@ export default function Index() {
       case "groceries": return t("freshFood");
       case "personal-care": return t("healthBeauty");
       case "medicines": return t("medicinesDesc");
+      case "clothing": return t("clothingDesc");
+      case "home": return t("homeDesc");
       default: return cat.description;
     }
   };
