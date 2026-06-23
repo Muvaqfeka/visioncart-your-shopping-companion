@@ -111,11 +111,35 @@ export default function Checkout() {
         startListening((addressText) => {
           setAddress(addressText);
           setStatus(`${language === "ta" ? "முகவரி" : "Address"}: ${addressText}`);
-          confirmOrder(name, phoneNum, addressText);
+          goToPayment();
         });
       });
     }, 9500);
   };
+
+  const goToPayment = () => {
+    setStep("payment");
+    setStatus(t("choosePayment"));
+    speak(language === "ta"
+      ? `பணம் செலுத்தும் முறையை தேர்ந்தெடுங்கள். மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய். ${t("paymentInstructions")}`
+      : `Please choose a payment method. Total ${total.toLocaleString("en-IN")} rupees. ${t("paymentInstructions")}`
+    ).then(() => {
+      startListening((text) => {
+        const lower = text.toLowerCase();
+        if (lower.includes("gpay") || lower.includes("g pay") || lower.includes("google")) handlePaymentChosen("gpay");
+        else if (lower.includes("phonepe") || lower.includes("phone pay") || lower.includes("phone pe")) handlePaymentChosen("phonepe");
+        else if (lower.includes("cash") || lower.includes("கேஷ்") || lower.includes("பணம்")) handlePaymentChosen("cod");
+        else if (lower.includes("offline") || lower.includes("ஆஃப்லைன்")) speak(language === "ta" ? "ஆஃப்லைன் பணம் தேர்ந்தெடுக்கப்பட்டது. வொர்க்கர் வீடியோ பதிவு செய்வார்." : "Offline pay selected. The worker will record the verification video.");
+      });
+    });
+  };
+
+  const handlePaymentChosen = (method: PaymentMethod, _meta?: { videoDataUrl?: string }) => {
+    setPaymentMethod(method);
+    const label = method === "gpay" ? "Google Pay" : method === "phonepe" ? "PhonePe" : method === "cod" ? (language === "ta" ? "கேஷ் ஆன் டெலிவரி" : "Cash on Delivery") : (language === "ta" ? "ஆஃப்லைன் பணம்" : "Offline Pay");
+    speak(language === "ta" ? `${label} தேர்ந்தெடுக்கப்பட்டது. ஆர்டர் உறுதிசெய்ய தயார்.` : `${label} selected. Ready to confirm your order.`).then(() => confirmOrder(name, phone, address));
+  };
+
 
   const confirmOrder = (n: string, p: string, addr: string) => {
     setStep("confirm");
