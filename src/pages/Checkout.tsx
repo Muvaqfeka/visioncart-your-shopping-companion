@@ -176,15 +176,16 @@ export default function Checkout() {
     setDeliveryTimeline(timeline);
     setActiveTimelineIndex(0);
 
+    const methodSpoken = paymentMethod === "gpay" ? "Google Pay" : paymentMethod === "phonepe" ? "PhonePe" : paymentMethod === "offline" ? (language === "ta" ? "ஆஃப்லைன் பணம்" : "Offline Pay") : (language === "ta" ? "கேஷ் ஆன் டெலிவரி" : "Cash on Delivery");
     speak(
       language === "ta"
-        ? `உங்கள் ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது! வாழ்த்துக்கள்! தற்போதைய நிலை: ஆர்டர் உறுதிசெய்யப்பட்டது. 8 மணி நேரத்தில் டெலிவரி எதிர்பார்க்கப்படுகிறது. உங்கள் ஆர்டர் எங்கு உள்ளது என்று தெரிய, "என் ஆர்டர் எங்கே" என்று சொல்லுங்கள். ஸ்மார்ட் விஷன் கார்ட்டில் ஷாப்பிங் செய்ததற்கு நன்றி.`
-        : `Congratulations! Your order has been placed successfully! Current status: Order Confirmed at ${timeline[0].time}. Estimated delivery in 8 hours by ${timeline[3].time}. You can say "where is my order" anytime to track it. Thank you for shopping with Smart Vision Cart!`
+        ? `வாழ்த்துக்கள்! உங்கள் ஆர்டர் ${methodSpoken} மூலம் வைக்கப்பட்டது. தற்போதைய நிலை: ஆர்டர் உறுதி. சுமார் 8 மணி நேரத்தில் டெலிவரி. ${t("trackingInstructions")}`
+        : `Congratulations! Your order has been placed using ${methodSpoken}. Current status: Order Confirmed at ${timeline[0].time}. Estimated delivery in about 8 hours by ${timeline[3].time}. ${t("trackingInstructions")} Thank you for shopping with Smart Vision Cart!`
     ).then(() => {
-      // Listen for tracking commands after order
       listenForTrackingCommands();
     });
   };
+
 
   const listenForTrackingCommands = () => {
     startListening((text) => {
