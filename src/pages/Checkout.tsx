@@ -334,6 +334,7 @@ export default function Checkout() {
               />
             </div>
             <p className="text-xs text-muted-foreground mt-2 text-center">{callProgress}% {language === "ta" ? "முடிந்தது" : "complete"}</p>
+          </motion.div>
         )}
 
         {/* Payment selection */}
