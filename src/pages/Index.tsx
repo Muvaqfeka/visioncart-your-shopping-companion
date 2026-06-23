@@ -19,13 +19,17 @@ export default function Index() {
   const [languageChosen, setLanguageChosen] = useState(false);
   const [showWelcomeCard, setShowWelcomeCard] = useState(true);
 
+  const taName = (id: string) => ({
+    electronics: "எலக்ட்ரானிக்ஸ்",
+    groceries: "மளிகை பொருட்கள்",
+    "personal-care": "அழகு பொருட்கள்",
+    medicines: "மருந்துகள்",
+    clothing: "ஆடைகள்",
+    home: "வீட்டு பொருட்கள்",
+  } as Record<string, string>)[id] || id;
+
   const readAllCategories = () => {
-    const catNames = categories.map((c) =>
-      language === "ta"
-        ? c.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : c.id === "groceries" ? "மளிகை பொருட்கள்" : c.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
-        : c.name
-    ).join(", ");
-    return catNames;
+    return categories.map((c) => (language === "ta" ? taName(c.id) : c.name)).join(", ");
   };
 
   const handleLanguageChoice = (text: string) => {
