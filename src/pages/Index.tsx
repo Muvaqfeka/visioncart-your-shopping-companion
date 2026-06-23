@@ -289,7 +289,7 @@ export default function Index() {
           <h2 className="font-display text-lg text-muted-foreground mb-4 text-center">
             {t("browseCategories")}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {categories.map((cat, i) => (
               <motion.button
                 key={cat.id}
