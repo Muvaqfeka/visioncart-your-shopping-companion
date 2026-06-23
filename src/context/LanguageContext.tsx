@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { setSpeechLanguage } from "@/hooks/useSpeech";
 
 export type Language = "en" | "ta";
 

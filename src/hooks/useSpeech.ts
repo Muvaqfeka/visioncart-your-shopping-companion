@@ -1,9 +1,29 @@
 import { useState, useCallback, useRef } from "react";
 
-export function speak(text: string, rate = 0.92): Promise<void> {
+// Module-level language so plain speak() picks the right voice.
+let currentLang: "en" | "ta" = "en";
+export function setSpeechLanguage(lang: "en" | "ta") {
+  currentLang = lang;
+}
+
+function pickVoice(lang: "en" | "ta"): SpeechSynthesisVoice | undefined {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return undefined;
+  const target = lang === "ta" ? ["ta-IN", "ta"] : ["en-IN", "en-GB", "en-US", "en"];
+  for (const code of target) {
+    const v = voices.find((vv) => vv.lang?.toLowerCase().startsWith(code.toLowerCase()));
+    if (v) return v;
+  }
+  return undefined;
+}
+
+export function speak(text: string, rate = 0.95): Promise<void> {
   return new Promise((resolve) => {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
+    const voice = pickVoice(currentLang);
+    utterance.lang = currentLang === "ta" ? "ta-IN" : "en-IN";
+    if (voice) utterance.voice = voice;
     utterance.rate = rate;
     utterance.pitch = 1.05;
     utterance.volume = 1;
@@ -23,14 +43,13 @@ export function useSpeechRecognition() {
   const recognitionRef = useRef<any>(null);
   const callbackRef = useRef<((text: string) => void) | null>(null);
 
-  const startListening = useCallback((onResult?: (text: string) => void) => {
+  const startListening = useCallback((onResult?: (text: string) => void, langOverride?: string) => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
       speak("Speech recognition is not supported in this browser.");
       return;
     }
 
-    // Stop any ongoing speech & previous recognition
     window.speechSynthesis.cancel();
     if (recognitionRef.current) {
       try { recognitionRef.current.abort(); } catch {}
@@ -41,14 +60,20 @@ export function useSpeechRecognition() {
     const recognition = new SR();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = "en-US";
-    recognition.maxAlternatives = 3;
+    // Default to Indian English; Tamil mode uses ta-IN.
+    recognition.lang = langOverride || (currentLang === "ta" ? "ta-IN" : "en-IN");
+    recognition.maxAlternatives = 5;
 
     recognition.onresult = (event: any) => {
-      const result = event.results[0][0].transcript;
-      setTranscript(result);
+      let best = event.results[0][0].transcript;
+      try {
+        const alts = Array.from(event.results[0] as any) as Array<{ transcript: string; confidence: number }>;
+        alts.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+        best = alts[0]?.transcript || best;
+      } catch {}
+      setTranscript(best);
       setIsListening(false);
-      callbackRef.current?.(result);
+      callbackRef.current?.(best);
     };
 
     recognition.onend = () => setIsListening(false);
@@ -57,7 +82,6 @@ export function useSpeechRecognition() {
       setIsListening(false);
     };
 
-    // Small delay to ensure TTS is fully stopped before mic activates
     setTimeout(() => {
       try {
         recognition.start();
