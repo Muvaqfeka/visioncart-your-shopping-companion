@@ -148,11 +148,11 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden aurora-bg">
       {/* Hero background */}
       <div className="absolute inset-0 z-0">
-        <img src={heroImage} alt="" className="w-full h-full object-cover opacity-25" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
+        <img src={heroImage} alt="" className="w-full h-full object-cover opacity-20 mix-blend-screen" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/85 to-background" />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
