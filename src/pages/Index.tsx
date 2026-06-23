@@ -160,7 +160,7 @@ export default function Index() {
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Eye className="w-8 h-8 text-primary animate-neon-pulse" />
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground text-glow">
+            <h1 className="font-display text-2xl md:text-3xl font-bold gradient-text">
               {t("appName")}
             </h1>
           </div>
