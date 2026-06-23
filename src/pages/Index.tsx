@@ -19,13 +19,17 @@ export default function Index() {
   const [languageChosen, setLanguageChosen] = useState(false);
   const [showWelcomeCard, setShowWelcomeCard] = useState(true);
 
+  const taName = (id: string) => ({
+    electronics: "எலக்ட்ரானிக்ஸ்",
+    groceries: "மளிகை பொருட்கள்",
+    "personal-care": "அழகு பொருட்கள்",
+    medicines: "மருந்துகள்",
+    clothing: "ஆடைகள்",
+    home: "வீட்டு பொருட்கள்",
+  } as Record<string, string>)[id] || id;
+
   const readAllCategories = () => {
-    const catNames = categories.map((c) =>
-      language === "ta"
-        ? c.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : c.id === "groceries" ? "மளிகை பொருட்கள்" : c.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
-        : c.name
-    ).join(", ");
-    return catNames;
+    return categories.map((c) => (language === "ta" ? taName(c.id) : c.name)).join(", ");
   };
 
   const handleLanguageChoice = (text: string) => {
@@ -127,13 +131,7 @@ export default function Index() {
 
   const getCatDisplayName = (cat: typeof categories[0]) => {
     if (language !== "ta") return cat.name;
-    switch (cat.id) {
-      case "electronics": return "எலக்ட்ரானிக்ஸ்";
-      case "groceries": return "மளிகை பொருட்கள்";
-      case "personal-care": return "அழகு பொருட்கள்";
-      case "medicines": return "மருந்துகள்";
-      default: return cat.name;
-    }
+    return taName(cat.id);
   };
 
   const getCatDescription = (cat: typeof categories[0]) => {
@@ -143,16 +141,18 @@ export default function Index() {
       case "groceries": return t("freshFood");
       case "personal-care": return t("healthBeauty");
       case "medicines": return t("medicinesDesc");
+      case "clothing": return t("clothingDesc");
+      case "home": return t("homeDesc");
       default: return cat.description;
     }
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden aurora-bg">
       {/* Hero background */}
       <div className="absolute inset-0 z-0">
-        <img src={heroImage} alt="" className="w-full h-full object-cover opacity-25" />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/90 to-background" />
+        <img src={heroImage} alt="" className="w-full h-full object-cover opacity-20 mix-blend-screen" />
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/85 to-background" />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8">
@@ -160,7 +160,7 @@ export default function Index() {
         <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Eye className="w-8 h-8 text-primary animate-neon-pulse" />
-            <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground text-glow">
+            <h1 className="font-display text-2xl md:text-3xl font-bold gradient-text">
               {t("appName")}
             </h1>
           </div>
@@ -289,7 +289,7 @@ export default function Index() {
           <h2 className="font-display text-lg text-muted-foreground mb-4 text-center">
             {t("browseCategories")}
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
             {categories.map((cat, i) => (
               <motion.button
                 key={cat.id}

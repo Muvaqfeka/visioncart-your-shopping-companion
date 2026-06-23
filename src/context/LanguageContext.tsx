@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { setSpeechLanguage } from "@/hooks/useSpeech";
 
 export type Language = "en" | "ta";
 
@@ -70,6 +71,21 @@ const translations = {
     freshFood: "Fresh food & essentials",
     healthBeauty: "Health & beauty products",
     medicinesDesc: "Health & wellness medicines",
+    clothing: "Clothing",
+    clothingDesc: "Apparel & ethnic wear",
+    home: "Home Essentials",
+    homeDesc: "Kitchen & home goods",
+    payment: "Payment",
+    choosePayment: "Choose Payment Method",
+    paymentInstructions: "Say G Pay, Phone Pay, Cash on Delivery, or Offline Pay.",
+    payGpay: "Google Pay (UPI)",
+    payPhonepe: "PhonePe (UPI)",
+    payCash: "Cash on Delivery",
+    payOffline: "Offline Pay (Worker Verified)",
+    recordExchange: "Record Cash Exchange Video",
+    stopRecording: "Stop Recording",
+    videoUploaded: "Video uploaded for verification",
+    trackingInstructions: "To track your order, say 'where is my order' or press the track button below. You can also say 'continue shopping' to go back.",
   },
   ta: {
     appName: "ஸ்மார்ட் விஷன் கார்ட்",
@@ -138,6 +154,21 @@ const translations = {
     freshFood: "புதிய உணவு & அத்தியாவசியங்கள்",
     healthBeauty: "ஆரோக்கியம் & அழகு பொருட்கள்",
     medicinesDesc: "ஆரோக்கிய மருந்துகள்",
+    clothing: "ஆடைகள்",
+    clothingDesc: "ஆடைகள் & பாரம்பரிய உடைகள்",
+    home: "வீட்டு பொருட்கள்",
+    homeDesc: "சமையலறை & வீட்டு உபயோகம்",
+    payment: "பணம் செலுத்துதல்",
+    choosePayment: "பணம் செலுத்தும் முறையை தேர்வு செய்யவும்",
+    paymentInstructions: "ஜி பே, போன் பே, கேஷ் ஆன் டெலிவரி, அல்லது ஆஃப்லைன் பே என்று சொல்லுங்கள்.",
+    payGpay: "கூகுள் பே (UPI)",
+    payPhonepe: "போன் பே (UPI)",
+    payCash: "கேஷ் ஆன் டெலிவரி",
+    payOffline: "ஆஃப்லைன் பணம் (வொர்க்கர் சரிபார்ப்பு)",
+    recordExchange: "பணப் பரிமாற்ற வீடியோ பதிவு",
+    stopRecording: "பதிவை நிறுத்து",
+    videoUploaded: "சரிபார்ப்புக்கு வீடியோ பதிவேற்றப்பட்டது",
+    trackingInstructions: "உங்கள் ஆர்டரை கண்காணிக்க, 'என் ஆர்டர் எங்கே' என்று சொல்லுங்கள் அல்லது கீழே உள்ள கண்காணிப்பு பொத்தானை அழுத்தவும். 'ஷாப்பிங் தொடர' என்று சொன்னால் முகப்புக்கு திரும்பலாம்.",
   },
 };
 
@@ -151,6 +182,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>("en");
+
+  // Sync speech module so speak()/recognition use the right locale.
+  useEffect(() => { setSpeechLanguage(language); }, [language]);
+
 
   const t = useCallback(
     (key: keyof typeof translations.en) => {

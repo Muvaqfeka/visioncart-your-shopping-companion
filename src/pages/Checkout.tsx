@@ -7,8 +7,9 @@ import { useCart } from "@/context/CartContext";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { useLanguage } from "@/context/LanguageContext";
 import { Input } from "@/components/ui/input";
+import PaymentPanel, { type PaymentMethod } from "@/components/PaymentPanel";
 
-type Step = "review" | "name" | "phone" | "calling" | "confirm" | "done";
+type Step = "review" | "name" | "phone" | "calling" | "payment" | "confirm" | "done";
 
 interface DeliveryTimelineItem {
   label: string;
@@ -33,6 +34,7 @@ export default function Checkout() {
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState("");
   const [callProgress, setCallProgress] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [deliveryTimeline, setDeliveryTimeline] = useState<DeliveryTimelineItem[]>([]);
   const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
   const started = useRef(false);
@@ -109,11 +111,35 @@ export default function Checkout() {
         startListening((addressText) => {
           setAddress(addressText);
           setStatus(`${language === "ta" ? "முகவரி" : "Address"}: ${addressText}`);
-          confirmOrder(name, phoneNum, addressText);
+          goToPayment();
         });
       });
     }, 9500);
   };
+
+  const goToPayment = () => {
+    setStep("payment");
+    setStatus(t("choosePayment"));
+    speak(language === "ta"
+      ? `பணம் செலுத்தும் முறையை தேர்ந்தெடுங்கள். மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய். ${t("paymentInstructions")}`
+      : `Please choose a payment method. Total ${total.toLocaleString("en-IN")} rupees. ${t("paymentInstructions")}`
+    ).then(() => {
+      startListening((text) => {
+        const lower = text.toLowerCase();
+        if (lower.includes("gpay") || lower.includes("g pay") || lower.includes("google")) handlePaymentChosen("gpay");
+        else if (lower.includes("phonepe") || lower.includes("phone pay") || lower.includes("phone pe")) handlePaymentChosen("phonepe");
+        else if (lower.includes("cash") || lower.includes("கேஷ்") || lower.includes("பணம்")) handlePaymentChosen("cod");
+        else if (lower.includes("offline") || lower.includes("ஆஃப்லைன்")) speak(language === "ta" ? "ஆஃப்லைன் பணம் தேர்ந்தெடுக்கப்பட்டது. வொர்க்கர் வீடியோ பதிவு செய்வார்." : "Offline pay selected. The worker will record the verification video.");
+      });
+    });
+  };
+
+  const handlePaymentChosen = (method: PaymentMethod, _meta?: { videoDataUrl?: string }) => {
+    setPaymentMethod(method);
+    const label = method === "gpay" ? "Google Pay" : method === "phonepe" ? "PhonePe" : method === "cod" ? (language === "ta" ? "கேஷ் ஆன் டெலிவரி" : "Cash on Delivery") : (language === "ta" ? "ஆஃப்லைன் பணம்" : "Offline Pay");
+    speak(language === "ta" ? `${label} தேர்ந்தெடுக்கப்பட்டது. ஆர்டர் உறுதிசெய்ய தயார்.` : `${label} selected. Ready to confirm your order.`).then(() => confirmOrder(name, phone, address));
+  };
+
 
   const confirmOrder = (n: string, p: string, addr: string) => {
     setStep("confirm");
@@ -150,15 +176,16 @@ export default function Checkout() {
     setDeliveryTimeline(timeline);
     setActiveTimelineIndex(0);
 
+    const methodSpoken = paymentMethod === "gpay" ? "Google Pay" : paymentMethod === "phonepe" ? "PhonePe" : paymentMethod === "offline" ? (language === "ta" ? "ஆஃப்லைன் பணம்" : "Offline Pay") : (language === "ta" ? "கேஷ் ஆன் டெலிவரி" : "Cash on Delivery");
     speak(
       language === "ta"
-        ? `உங்கள் ஆர்டர் வெற்றிகரமாக வைக்கப்பட்டது! வாழ்த்துக்கள்! தற்போதைய நிலை: ஆர்டர் உறுதிசெய்யப்பட்டது. 8 மணி நேரத்தில் டெலிவரி எதிர்பார்க்கப்படுகிறது. உங்கள் ஆர்டர் எங்கு உள்ளது என்று தெரிய, "என் ஆர்டர் எங்கே" என்று சொல்லுங்கள். ஸ்மார்ட் விஷன் கார்ட்டில் ஷாப்பிங் செய்ததற்கு நன்றி.`
-        : `Congratulations! Your order has been placed successfully! Current status: Order Confirmed at ${timeline[0].time}. Estimated delivery in 8 hours by ${timeline[3].time}. You can say "where is my order" anytime to track it. Thank you for shopping with Smart Vision Cart!`
+        ? `வாழ்த்துக்கள்! உங்கள் ஆர்டர் ${methodSpoken} மூலம் வைக்கப்பட்டது. தற்போதைய நிலை: ஆர்டர் உறுதி. சுமார் 8 மணி நேரத்தில் டெலிவரி. ${t("trackingInstructions")}`
+        : `Congratulations! Your order has been placed using ${methodSpoken}. Current status: Order Confirmed at ${timeline[0].time}. Estimated delivery in about 8 hours by ${timeline[3].time}. ${t("trackingInstructions")} Thank you for shopping with Smart Vision Cart!`
     ).then(() => {
-      // Listen for tracking commands after order
       listenForTrackingCommands();
     });
   };
+
 
   const listenForTrackingCommands = () => {
     startListening((text) => {
@@ -251,6 +278,7 @@ export default function Checkout() {
     { key: "name", label: t("name") },
     { key: "phone", label: t("phone") },
     { key: "calling", label: t("verify") },
+    { key: "payment", label: t("payment") },
     { key: "confirm", label: t("confirm") },
     { key: "done", label: t("done") },
   ];
@@ -308,6 +336,15 @@ export default function Checkout() {
             <p className="text-xs text-muted-foreground mt-2 text-center">{callProgress}% {language === "ta" ? "முடிந்தது" : "complete"}</p>
           </motion.div>
         )}
+
+        {/* Payment selection */}
+        {step === "payment" && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-4 mb-6">
+            <PaymentPanel amount={total} payeeName="Smart Vision Cart" onConfirm={handlePaymentChosen} />
+          </motion.div>
+        )}
+
+
 
         {/* Cart items */}
         <AnimatePresence>
