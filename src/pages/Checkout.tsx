@@ -34,6 +34,7 @@ export default function Checkout() {
   const [address, setAddress] = useState("");
   const [status, setStatus] = useState("");
   const [callProgress, setCallProgress] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [deliveryTimeline, setDeliveryTimeline] = useState<DeliveryTimelineItem[]>([]);
   const [activeTimelineIndex, setActiveTimelineIndex] = useState(0);
   const started = useRef(false);
