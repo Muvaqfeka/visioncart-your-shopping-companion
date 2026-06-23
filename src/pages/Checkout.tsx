@@ -7,8 +7,9 @@ import { useCart } from "@/context/CartContext";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { useLanguage } from "@/context/LanguageContext";
 import { Input } from "@/components/ui/input";
+import PaymentPanel, { type PaymentMethod } from "@/components/PaymentPanel";
 
-type Step = "review" | "name" | "phone" | "calling" | "confirm" | "done";
+type Step = "review" | "name" | "phone" | "calling" | "payment" | "confirm" | "done";
 
 interface DeliveryTimelineItem {
   label: string;
