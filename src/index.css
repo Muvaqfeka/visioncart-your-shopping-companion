@@ -4,35 +4,36 @@
 
 @layer base {
   :root {
-    --background: 220 25% 4%;
-    --foreground: 150 15% 90%;
-    --card: 220 20% 8%;
-    --card-foreground: 150 15% 90%;
-    --popover: 220 20% 10%;
-    --popover-foreground: 150 15% 90%;
-    --primary: 155 100% 45%;
-    --primary-foreground: 220 25% 4%;
-    --secondary: 220 15% 14%;
-    --secondary-foreground: 150 15% 85%;
-    --muted: 220 15% 12%;
-    --muted-foreground: 220 10% 50%;
-    --accent: 155 50% 14%;
-    --accent-foreground: 155 100% 70%;
-    --destructive: 0 80% 55%;
+    --background: 222 47% 8%;
+    --foreground: 210 30% 95%;
+    --card: 217 33% 13%;
+    --card-foreground: 210 30% 95%;
+    --popover: 217 33% 15%;
+    --popover-foreground: 210 30% 95%;
+    --primary: 187 92% 53%;
+    --primary-foreground: 222 47% 8%;
+    --secondary: 217 33% 18%;
+    --secondary-foreground: 210 30% 92%;
+    --muted: 217 33% 16%;
+    --muted-foreground: 215 20% 60%;
+    --accent: 75 84% 56%;
+    --accent-foreground: 222 47% 8%;
+    --destructive: 0 80% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 155 25% 16%;
-    --input: 220 15% 15%;
-    --ring: 155 100% 45%;
-    --radius: 0.75rem;
-    --sidebar-background: 220 25% 6%;
-    --sidebar-foreground: 150 15% 90%;
-    --sidebar-primary: 155 100% 45%;
-    --sidebar-primary-foreground: 220 25% 4%;
-    --sidebar-accent: 155 50% 14%;
-    --sidebar-accent-foreground: 155 100% 70%;
-    --sidebar-border: 155 25% 16%;
-    --sidebar-ring: 155 100% 45%;
+    --border: 217 33% 22%;
+    --input: 217 33% 18%;
+    --ring: 187 92% 53%;
+    --radius: 0.85rem;
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 30% 95%;
+    --sidebar-primary: 187 92% 53%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 75 84% 56%;
+    --sidebar-accent-foreground: 222 47% 8%;
+    --sidebar-border: 217 33% 22%;
+    --sidebar-ring: 187 92% 53%;
   }
+
 }
 
 @layer base {
@@ -69,17 +70,18 @@
   }
   .aurora-bg {
     background:
-      radial-gradient(ellipse 70% 50% at 20% 10%, hsl(155 100% 45% / 0.20), transparent 60%),
-      radial-gradient(ellipse 60% 50% at 85% 20%, hsl(190 100% 50% / 0.18), transparent 60%),
-      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(280 80% 55% / 0.16), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 15% 10%, hsl(187 92% 53% / 0.18), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 25%, hsl(75 84% 56% / 0.15), transparent 60%),
+      radial-gradient(ellipse 80% 60% at 50% 100%, hsl(265 80% 55% / 0.18), transparent 60%),
       hsl(var(--background));
   }
   .gradient-text {
-    background: linear-gradient(135deg, hsl(155 100% 55%), hsl(190 100% 60%), hsl(280 90% 70%));
+    background: linear-gradient(135deg, hsl(187 92% 60%), hsl(75 84% 60%));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
+
 }
 
 @layer utilities {
