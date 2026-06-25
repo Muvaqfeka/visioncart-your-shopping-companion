@@ -117,6 +117,12 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
   const uploadAndSubmit = async () => {
     if (!videoBlob) return;
     setUploading(true);
+    if (isLocal) {
+      setUploading(false);
+      speak(language === "ta" ? "வீடியோ சேமிக்கப்பட்டது." : "Video saved locally. Order confirmed.");
+      onSubmitted("offline", "paid");
+      return;
+    }
     const ext = videoBlob.type.includes("mp4") ? "mp4" : "webm";
     const path = `${userId}/${orderId}.${ext}`;
     const { error: upErr } = await supabase.storage.from("payment-videos").upload(path, videoBlob, {
