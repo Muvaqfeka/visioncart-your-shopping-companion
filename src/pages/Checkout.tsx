@@ -119,7 +119,16 @@ export default function Checkout() {
 
   const goToPayment = async (addr: string) => {
     if (!userId) return;
-    // Create the order row now with payment_status=pending
+    // Local-only mode: skip DB writes, generate a local order id
+    if (isLocalMode) {
+      setOrderId(`local-${crypto.randomUUID()}`);
+      setStep("payment");
+      setStatus(t("choosePayment"));
+      speak(language === "ta"
+        ? `பணம் செலுத்தும் முறையை தேர்வு செய்யவும். மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய்.`
+        : `Choose a payment method. Total ${total.toLocaleString("en-IN")} rupees.`);
+      return;
+    }
     const { data, error } = await supabase.from("orders").insert({
       user_id: userId,
       customer_name: name,
