@@ -28,7 +28,7 @@ function buildUpiLink(amount: number, payee: string) {
   return `upi://pay?${params.toString()}`;
 }
 
-export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", onSubmitted }: PaymentPanelProps) {
+export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [txnId, setTxnId] = useState("");
