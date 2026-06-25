@@ -86,11 +86,16 @@ export default function Category() {
       return;
     }
 
-    // Read product by name
+    // Read product by name → announce name only, then await double-blink
     const productIndex = findProductByName(text);
     if (productIndex >= 0 && !lower.includes("add") && !lower.includes("cart") && !lower.includes("next") && !lower.includes("help")) {
       setActiveIndex(productIndex);
-      readProduct(productIndex);
+      namedStageRef.current = { index: productIndex, stage: 0 };
+      const p = products[productIndex];
+      setStatus(`🔎 ${p.name}`);
+      speak(language === "ta"
+        ? `${p.name}, ${p.brand}. விளக்கம் மற்றும் விலை கேட்க இரு முறை கண் சிமிட்டுங்கள்.`
+        : `${p.name} by ${p.brand}. Double blink to hear the description and price.`);
       return;
     }
 
