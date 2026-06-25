@@ -41,17 +41,21 @@ export default function Checkout() {
   const [deliveryStatus, setDeliveryStatus] = useState<string>("placed");
   const started = useRef(false);
 
-  // Auth gate
+  // No login required — use existing session, else try anonymous sign-in, else local-only mode
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        toast.message("Sign in to place an order", { description: "We need an account to track and verify your payment." });
-        navigate("/auth");
-        return;
-      }
-      setUserId(data.session.user.id);
-    });
-  }, [navigate]);
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) { setUserId(data.session.user.id); return; }
+      try {
+        const { data: anon } = await (supabase.auth as any).signInAnonymously?.();
+        if (anon?.user) { setUserId(anon.user.id); return; }
+      } catch (e) { console.log("anon sign-in unavailable", e); }
+      // Local fallback — order completes without DB persistence
+      setUserId(`local-${crypto.randomUUID()}`);
+    })();
+  }, []);
+
+  const isLocalMode = !!userId && userId.startsWith("local-");
 
   // Realtime: track payment_status / delivery updates for this order
   useEffect(() => {
