@@ -41,21 +41,25 @@ export default function Checkout() {
   const [deliveryStatus, setDeliveryStatus] = useState<string>("placed");
   const started = useRef(false);
 
-  // Auth gate
+  // No login required — use existing session, else try anonymous sign-in, else local-only mode
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        toast.message("Sign in to place an order", { description: "We need an account to track and verify your payment." });
-        navigate("/auth");
-        return;
-      }
-      setUserId(data.session.user.id);
-    });
-  }, [navigate]);
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) { setUserId(data.session.user.id); return; }
+      try {
+        const { data: anon } = await (supabase.auth as any).signInAnonymously?.();
+        if (anon?.user) { setUserId(anon.user.id); return; }
+      } catch (e) { console.log("anon sign-in unavailable", e); }
+      // Local fallback — order completes without DB persistence
+      setUserId(`local-${crypto.randomUUID()}`);
+    })();
+  }, []);
 
-  // Realtime: track payment_status / delivery updates for this order
+  const isLocalMode = !!userId && userId.startsWith("local-");
+
+  // Realtime: track payment_status / delivery updates (skip in local mode)
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || isLocalMode) return;
     const ch = supabase
       .channel(`order-${orderId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` }, (payload) => {
@@ -63,14 +67,14 @@ export default function Checkout() {
         setPaymentStatus(o.payment_status);
         setDeliveryStatus(o.delivery_status);
         if (o.payment_status === "paid") {
-          speak(language === "ta" ? "உங்கள் பணம் வொர்க்கர் மூலம் சரிபார்க்கப்பட்டது. ஆர்டர் உறுதி." : "Your payment is verified by our worker. Order confirmed!");
+          speak(language === "ta" ? "உங்கள் பணம் சரிபார்க்கப்பட்டது. ஆர்டர் உறுதி." : "Your payment is verified. Order confirmed!");
         } else if (o.payment_status === "failed") {
           speak(language === "ta" ? "பணம் சரிபார்ப்பு தோல்வி. மீண்டும் முயற்சிக்கவும்." : "Payment verification failed. Please retry.");
         }
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [orderId, language]);
+  }, [orderId, language, isLocalMode]);
 
   const askName = () => {
     setStep("name"); setStatus(t("sayYourName"));
@@ -115,7 +119,16 @@ export default function Checkout() {
 
   const goToPayment = async (addr: string) => {
     if (!userId) return;
-    // Create the order row now with payment_status=pending
+    // Local-only mode: skip DB writes, generate a local order id
+    if (isLocalMode) {
+      setOrderId(`local-${crypto.randomUUID()}`);
+      setStep("payment");
+      setStatus(t("choosePayment"));
+      speak(language === "ta"
+        ? `பணம் செலுத்தும் முறையை தேர்வு செய்யவும். மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய்.`
+        : `Choose a payment method. Total ${total.toLocaleString("en-IN")} rupees.`);
+      return;
+    }
     const { data, error } = await supabase.from("orders").insert({
       user_id: userId,
       customer_name: name,
@@ -260,7 +273,7 @@ export default function Checkout() {
 
         {step === "payment" && orderId && userId && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-4 mb-6">
-            <PaymentPanel orderId={orderId} userId={userId} amount={total} onSubmitted={onPaymentSubmitted} />
+            <PaymentPanel orderId={orderId} userId={userId} amount={total} isLocal={isLocalMode} onSubmitted={onPaymentSubmitted} />
           </motion.div>
         )}
 

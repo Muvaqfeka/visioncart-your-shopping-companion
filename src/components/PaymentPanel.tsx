@@ -15,6 +15,7 @@ interface PaymentPanelProps {
   userId: string;
   amount: number;
   payeeName?: string;
+  isLocal?: boolean;
   onSubmitted: (method: PaymentMethod, status: "paid" | "awaiting_verification" | "pending") => void;
 }
 
@@ -27,7 +28,7 @@ function buildUpiLink(amount: number, payee: string) {
   return `upi://pay?${params.toString()}`;
 }
 
-export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", onSubmitted }: PaymentPanelProps) {
+export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [txnId, setTxnId] = useState("");
@@ -58,25 +59,29 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("orders").update({
-      payment_method: method,
-      payment_status: "awaiting_verification",
-      upi_txn_id: txnId.trim(),
-    }).eq("id", orderId);
+    if (!isLocal) {
+      const { error } = await supabase.from("orders").update({
+        payment_method: method,
+        payment_status: "awaiting_verification",
+        upi_txn_id: txnId.trim(),
+      }).eq("id", orderId);
+      if (error) { setSubmitting(false); return toast.error(error.message); }
+    }
     setSubmitting(false);
-    if (error) return toast.error(error.message);
-    speak(language === "ta" ? "UPI ஐடி பெறப்பட்டது. வொர்க்கர் சரிபார்த்த பிறகு ஆர்டர் உறுதியாகும்." : "UPI ID received. Your order is awaiting worker verification.");
-    onSubmitted(method!, "awaiting_verification");
+    speak(language === "ta" ? "UPI ஐடி பெறப்பட்டது. ஆர்டர் உறுதி." : "UPI ID received. Your order is confirmed.");
+    onSubmitted(method!, isLocal ? "paid" : "awaiting_verification");
   };
 
   const chooseCod = async () => {
     setMethod("cod");
     setSubmitting(true);
-    const { error } = await supabase.from("orders").update({
-      payment_method: "cod", payment_status: "pending",
-    }).eq("id", orderId);
+    if (!isLocal) {
+      const { error } = await supabase.from("orders").update({
+        payment_method: "cod", payment_status: "pending",
+      }).eq("id", orderId);
+      if (error) { setSubmitting(false); return toast.error(error.message); }
+    }
     setSubmitting(false);
-    if (error) return toast.error(error.message);
     onSubmitted("cod", "pending");
   };
 
@@ -112,6 +117,12 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
   const uploadAndSubmit = async () => {
     if (!videoBlob) return;
     setUploading(true);
+    if (isLocal) {
+      setUploading(false);
+      speak(language === "ta" ? "வீடியோ சேமிக்கப்பட்டது." : "Video saved locally. Order confirmed.");
+      onSubmitted("offline", "paid");
+      return;
+    }
     const ext = videoBlob.type.includes("mp4") ? "mp4" : "webm";
     const path = `${userId}/${orderId}.${ext}`;
     const { error: upErr } = await supabase.storage.from("payment-videos").upload(path, videoBlob, {

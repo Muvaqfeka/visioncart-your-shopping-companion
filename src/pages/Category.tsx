@@ -19,6 +19,8 @@ export default function Category() {
   const [status, setStatus] = useState("");
   const announced = useRef(false);
   const autoReadDone = useRef(false);
+  // Voice-name selection stages: 0 = just announced name, 1 = details read, awaiting add confirm
+  const namedStageRef = useRef<{ index: number | null; stage: 0 | 1 }>({ index: null, stage: 0 });
 
   const category = getCategoryById(categoryId || "");
   const products = getProductsByCategory(categoryId || "");
@@ -84,11 +86,16 @@ export default function Category() {
       return;
     }
 
-    // Read product by name
+    // Read product by name → announce name only, then await double-blink
     const productIndex = findProductByName(text);
     if (productIndex >= 0 && !lower.includes("add") && !lower.includes("cart") && !lower.includes("next") && !lower.includes("help")) {
       setActiveIndex(productIndex);
-      readProduct(productIndex);
+      namedStageRef.current = { index: productIndex, stage: 0 };
+      const p = products[productIndex];
+      setStatus(`🔎 ${p.name}`);
+      speak(language === "ta"
+        ? `${p.name}, ${p.brand}. விளக்கம் மற்றும் விலை கேட்க இரு முறை கண் சிமிட்டுங்கள்.`
+        : `${p.name} by ${p.brand}. Double blink to hear the description and price.`);
       return;
     }
 
@@ -167,6 +174,33 @@ export default function Category() {
   };
 
   const handleDoubleBlink = () => {
+    const named = namedStageRef.current;
+    if (named.index !== null) {
+      const p = products[named.index];
+      if (!p) { namedStageRef.current = { index: null, stage: 0 }; return; }
+      if (named.stage === 0) {
+        // Stage 1: read full description + price, then prompt for add
+        namedStageRef.current = { index: named.index, stage: 1 };
+        const msg = language === "ta"
+          ? `${p.name}. விலை ${p.price.toLocaleString("en-IN")} ரூபாய். அம்சங்கள்: ${p.features.join(", ")}. கார்ட்டில் சேர்க்க இரு முறை கண் சிமிட்டுங்கள்.`
+          : `${p.name}. Price ${p.price.toLocaleString("en-IN")} rupees. Features: ${p.features.join(", ")}. Double blink again to add to cart, or say go to cart.`;
+        setStatus(`📖 ${p.name}`);
+        speak(msg);
+        return;
+      }
+      if (named.stage === 1) {
+        // Stage 2: add to cart
+        addItem(p);
+        namedStageRef.current = { index: null, stage: 0 };
+        const msg = language === "ta"
+          ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது. கார்ட்டுக்கு செல்ல "go to cart" என்று சொல்லுங்கள்.`
+          : `${p.name} added to cart. Say "go to cart" to checkout, or blink to continue shopping.`;
+        setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
+        speak(msg);
+        return;
+      }
+    }
+    // Default double-blink: read current product fully
     readProduct(activeIndex);
   };
 
