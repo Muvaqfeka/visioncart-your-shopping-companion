@@ -19,6 +19,8 @@ export default function Category() {
   const [status, setStatus] = useState("");
   const announced = useRef(false);
   const autoReadDone = useRef(false);
+  // Voice-name selection stages: 0 = just announced name, 1 = details read, awaiting add confirm
+  const namedStageRef = useRef<{ index: number | null; stage: 0 | 1 }>({ index: null, stage: 0 });
 
   const category = getCategoryById(categoryId || "");
   const products = getProductsByCategory(categoryId || "");
