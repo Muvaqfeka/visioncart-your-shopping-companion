@@ -15,6 +15,7 @@ interface PaymentPanelProps {
   userId: string;
   amount: number;
   payeeName?: string;
+  isLocal?: boolean;
   onSubmitted: (method: PaymentMethod, status: "paid" | "awaiting_verification" | "pending") => void;
 }
 
