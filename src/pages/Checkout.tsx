@@ -273,7 +273,7 @@ export default function Checkout() {
 
         {step === "payment" && orderId && userId && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-xl p-4 mb-6">
-            <PaymentPanel orderId={orderId} userId={userId} amount={total} onSubmitted={onPaymentSubmitted} />
+            <PaymentPanel orderId={orderId} userId={userId} amount={total} isLocal={isLocalMode} onSubmitted={onPaymentSubmitted} />
           </motion.div>
         )}
 
