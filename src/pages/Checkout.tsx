@@ -57,9 +57,9 @@ export default function Checkout() {
 
   const isLocalMode = !!userId && userId.startsWith("local-");
 
-  // Realtime: track payment_status / delivery updates for this order
+  // Realtime: track payment_status / delivery updates (skip in local mode)
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || isLocalMode) return;
     const ch = supabase
       .channel(`order-${orderId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${orderId}` }, (payload) => {
@@ -67,14 +67,14 @@ export default function Checkout() {
         setPaymentStatus(o.payment_status);
         setDeliveryStatus(o.delivery_status);
         if (o.payment_status === "paid") {
-          speak(language === "ta" ? "உங்கள் பணம் வொர்க்கர் மூலம் சரிபார்க்கப்பட்டது. ஆர்டர் உறுதி." : "Your payment is verified by our worker. Order confirmed!");
+          speak(language === "ta" ? "உங்கள் பணம் சரிபார்க்கப்பட்டது. ஆர்டர் உறுதி." : "Your payment is verified. Order confirmed!");
         } else if (o.payment_status === "failed") {
           speak(language === "ta" ? "பணம் சரிபார்ப்பு தோல்வி. மீண்டும் முயற்சிக்கவும்." : "Payment verification failed. Please retry.");
         }
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [orderId, language]);
+  }, [orderId, language, isLocalMode]);
 
   const askName = () => {
     setStep("name"); setStatus(t("sayYourName"));
