@@ -13,7 +13,7 @@ export default function Category() {
   const { categoryId } = useParams<{ categoryId: string }>();
   const navigate = useNavigate();
   const { addItem, items, total, itemCount } = useCart();
-  const { isListening, startListening } = useSpeechRecognition();
+  const { isListening, interimText, startListening } = useSpeechRecognition();
   const { language, t } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const [status, setStatus] = useState("");
