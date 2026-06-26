@@ -21,37 +21,52 @@ interface PaymentPanelProps {
 
 const UPI_VPA = "smartvisioncart@upi";
 
-function buildUpiLink(amount: number, payee: string) {
+function buildUpiQuery(amount: number, payee: string, orderId: string) {
   const params = new URLSearchParams({
-    pa: UPI_VPA, pn: payee, am: amount.toFixed(2), cu: "INR", tn: "Smart Vision Cart Order",
+    pa: UPI_VPA,
+    pn: payee,
+    am: amount.toFixed(2),
+    cu: "INR",
+    tn: `SVC Order ${orderId.slice(0, 8)}`,
+    tr: orderId.slice(0, 16),
   });
-  return `upi://pay?${params.toString()}`;
+  return params.toString();
 }
 
-export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
-  const { language, t } = useLanguage();
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
-  const [txnId, setTxnId] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent);
+}
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
 
-  // Offline pay recording state
-  const [recording, setRecording] = useState(false);
-  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
-  const [videoPreview, setVideoPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const recRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const videoElRef = useRef<HTMLVideoElement | null>(null);
+function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, orderId: string) {
+  const query = buildUpiQuery(amount, payee, orderId);
+  const pkg = app === "gpay" ? "com.google.android.apps.nbu.paisa.user" : "com.phonepe.app";
 
-  const openUpi = (m: "gpay" | "phonepe") => {
-    setMethod(m);
-    const link = buildUpiLink(amount, payeeName);
-    speak(language === "ta"
-      ? `${m === "gpay" ? "கூகுள் பே" : "போன் பே"} ஐ திறக்கிறது. பணம் செலுத்திய பின் UPI ஐடி ஐ உள்ளிடுங்கள்.`
-      : `Opening ${m === "gpay" ? "Google Pay" : "PhonePe"}. After paying, enter the 12-digit UPI transaction ID to submit for verification.`);
-    try { window.location.href = link; } catch {}
-  };
+  // Android: targeted intent URL opens the specific app directly
+  if (isAndroid()) {
+    const intentUrl = `intent://pay?${query}#Intent;scheme=upi;package=${pkg};end`;
+    window.location.href = intentUrl;
+    // fallback to generic upi chooser after a moment
+    setTimeout(() => {
+      window.location.href = `upi://pay?${query}`;
+    }, 1500);
+    return true;
+  }
+
+  // iOS / other mobile: try app-specific scheme, then generic upi://
+  if (isMobile()) {
+    const scheme = app === "gpay" ? `gpay://upi/pay?${query}` : `phonepe://pay?${query}`;
+    window.location.href = scheme;
+    setTimeout(() => { window.location.href = `upi://pay?${query}`; }, 1500);
+    return true;
+  }
+
+  // Desktop: try generic upi link (won't work on most desktops) and signal fallback
+  try { window.location.href = `upi://pay?${query}`; } catch {}
+  return false;
+}
 
   const submitUpi = async () => {
     if (!txnId.trim() || txnId.trim().length < 6) {
