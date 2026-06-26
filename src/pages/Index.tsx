@@ -33,21 +33,22 @@ export default function Index() {
   };
 
   const handleLanguageChoice = (text: string) => {
-    const lower = text.toLowerCase();
-    if (lower.includes("tamil") || lower.includes("தமிழ்")) {
+    const isTamil = matchCommand(text, COMMAND_PHRASES.tamil, 0.5).matched;
+    const isEnglish = matchCommand(text, COMMAND_PHRASES.english, 0.5).matched;
+    if (isTamil && !isEnglish) {
       setLanguage("ta");
       setLanguageChosen(true);
       setShowWelcomeCard(false);
       setStatus("தமிழ் தேர்ந்தெடுக்கப்பட்டது ✓");
       const catNames = "எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், மருந்துகள்";
-      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்! நீங்கள் சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யலாம். உங்கள் குரலும் கண்களும் மட்டுமே போதும். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
+      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்! நீங்கள் சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யலாம். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
     } else {
       setLanguage("en");
       setLanguageChosen(true);
       setShowWelcomeCard(false);
       setStatus("English selected ✓");
       const catNames = categories.map(c => c.name).join(", ");
-      speak(`English selected. Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Your voice and eyes are all you need. No touch required. Available categories are: ${catNames}. Blink once or press B to start voice search.`);
+      speak(`English selected. Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Available categories: ${catNames}. Blink once or press B to start voice search.`);
     }
   };
 
