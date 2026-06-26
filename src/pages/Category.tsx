@@ -76,53 +76,38 @@ export default function Category() {
     return products.findIndex(p => lower.includes(p.name.toLowerCase()) || lower.includes(p.brand.toLowerCase()));
   };
 
+  const helpSpeech = () => {
+    const msg = language === "ta"
+      ? "கட்டளைகள்: அடுத்தது, முந்தையது, பொருளைப் படி, கார்ட்டில் சேர், கார்ட் பார், கார்ட்டுக்கு செல், செக்அவுட், திரும்பு, உதவி."
+      : "Commands: Next, Previous, Read Product, Add to Cart, View Cart, Go to Cart, Checkout, Go Back, Help. Just speak naturally.";
+    speak(msg);
+  };
+
   const handleVoiceCommand = (text: string) => {
     const lower = text.toLowerCase();
 
     // Help
-    if (lower.includes("help") || lower.includes("உதவி")) {
-      setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help commands");
-      speak(t("helpCommands"));
+    if (matchCommand(text, COMMAND_PHRASES.help, 0.5).matched) {
+      setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help — available commands");
+      helpSpeech();
       return;
     }
 
-    // Read product by name → announce name only, then await double-blink
-    const productIndex = findProductByName(text);
-    if (productIndex >= 0 && !lower.includes("add") && !lower.includes("cart") && !lower.includes("next") && !lower.includes("help")) {
-      setActiveIndex(productIndex);
-      namedStageRef.current = { index: productIndex, stage: 0 };
-      const p = products[productIndex];
-      setStatus(`🔎 ${p.name}`);
-      speak(language === "ta"
-        ? `${p.name}, ${p.brand}. விளக்கம் மற்றும் விலை கேட்க இரு முறை கண் சிமிட்டுங்கள்.`
-        : `${p.name} by ${p.brand}. Double blink to hear the description and price.`);
+    // Go to cart / View cart navigation (check BEFORE add to cart, more specific)
+    if (matchCommand(text, COMMAND_PHRASES.goToCart, 0.5).matched) {
+      setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
+      speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Going to cart page.").then(() => navigate("/checkout"));
       return;
     }
 
-    // Read current product
-    if (lower.includes("read product") || lower.includes("read this") || lower.includes("பொருளைப் படி") || lower.includes("படி")) {
-      readProduct(activeIndex);
-      return;
-    }
-
-    // Next
-    if (lower.includes("next") || lower.includes("அடுத்தது")) {
-      const next = (activeIndex + 1) % products.length;
-      setActiveIndex(next);
-      readProduct(next);
-      return;
-    }
-
-    // Previous
-    if (lower.includes("previous") || lower.includes("back") || lower.includes("முந்தையது")) {
-      const prev = (activeIndex - 1 + products.length) % products.length;
-      setActiveIndex(prev);
-      readProduct(prev);
+    // Read cart aloud
+    if (matchCommand(text, COMMAND_PHRASES.readCart, 0.5).matched) {
+      readCart();
       return;
     }
 
     // Add to cart
-    if (lower.includes("add to cart") || lower.includes("add") || lower.includes("order") || lower.includes("take order") || lower.includes("கார்ட்டில் சேர்") || lower.includes("சேர்")) {
+    if (matchCommand(text, COMMAND_PHRASES.addToCart, 0.5).matched) {
       const p = products[activeIndex];
       if (p) {
         addItem(p);
@@ -135,34 +120,54 @@ export default function Category() {
       return;
     }
 
-    // Go to cart / View cart → navigate to checkout
-    if (lower.includes("go to cart") || lower.includes("கார்ட்டுக்கு செல்")) {
-      setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
-      speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Going to cart page.").then(() => navigate("/checkout"));
+    // Next / Previous
+    if (matchCommand(text, COMMAND_PHRASES.next, 0.5).matched) {
+      const next = (activeIndex + 1) % products.length;
+      setActiveIndex(next);
+      readProduct(next);
+      return;
+    }
+    if (matchCommand(text, COMMAND_PHRASES.previous, 0.5).matched) {
+      const prev = (activeIndex - 1 + products.length) % products.length;
+      setActiveIndex(prev);
+      readProduct(prev);
       return;
     }
 
-    if (lower.includes("view cart") || lower.includes("read cart") || lower.includes("read my cart") || lower.includes("my cart") || lower.includes("show cart") || lower.includes("கார்ட் பார்") || lower.includes("என் கார்ட்")) {
-      readCart();
+    // Read by product name → announce + await double-blink for details
+    const productIndex = findProductByName(text);
+    if (productIndex >= 0) {
+      setActiveIndex(productIndex);
+      namedStageRef.current = { index: productIndex, stage: 0 };
+      const p = products[productIndex];
+      setStatus(`🔎 ${p.name}`);
+      speak(language === "ta"
+        ? `${p.name}, ${p.brand}. விளக்கம் மற்றும் விலை கேட்க இரு முறை கண் சிமிட்டுங்கள்.`
+        : `${p.name} by ${p.brand}. Double blink to hear the description and price.`);
       return;
     }
 
-    // Checkout
-    if (lower.includes("checkout") || lower.includes("pay") || lower.includes("செக்அவுட்")) {
+    // Read current
+    if (lower.includes("read product") || lower.includes("read this") || lower.includes("படி")) {
+      readProduct(activeIndex);
+      return;
+    }
+
+    // Checkout / Home
+    if (matchCommand(text, COMMAND_PHRASES.checkout, 0.5).matched) {
       speak(language === "ta" ? "செக்அவுட்டுக்கு செல்கிறது." : "Proceeding to checkout.").then(() => navigate("/checkout"));
       return;
     }
-
-    // Home / go back
     if (lower.includes("home") || lower.includes("go back") || lower.includes("திரும்பு")) {
       speak(language === "ta" ? "முகப்பு பக்கத்திற்கு திரும்புகிறது." : "Going back to home.").then(() => navigate("/"));
       return;
     }
 
-    setStatus(language === "ta" ? "கட்டளை புரியவில்லை. முயற்சிக்கவும்: அடுத்தது, கார்ட்டில் சேர், கார்ட் பார், உதவி" : "Command not recognized. Try: Next, Add to Cart, View Cart, Help");
+    // Unrecognized — echo so user can correct
+    setStatus(`${language === "ta" ? "கேட்டது" : "Heard"}: "${text}"`);
     speak(language === "ta"
-      ? "மன்னிக்கவும், புரியவில்லை. அடுத்தது, கார்ட்டில் சேர், கார்ட் பார், அல்லது உதவி என்று சொல்லுங்கள்."
-      : "Sorry, I didn't understand. You can say Next, Add to Cart, View Cart, Read Product, or Help."
+      ? `"${text}" புரியவில்லை. அடுத்தது, கார்ட்டில் சேர், கார்ட்டுக்கு செல், அல்லது உதவி என்று சொல்லுங்கள்.`
+      : `I heard "${text}" but did not recognize it. Try: Next, Add to Cart, Go to Cart, or Help.`
     );
   };
 
