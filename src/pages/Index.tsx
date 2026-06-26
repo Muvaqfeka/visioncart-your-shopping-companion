@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
-import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
+import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
 import { categories, findCategoryByVoice } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
