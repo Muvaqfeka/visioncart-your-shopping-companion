@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2 } from "lucide-react";
+import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2, XCircle, Volume2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { speak } from "@/hooks/useSpeech";
 import { supabase } from "@/integrations/supabase/client";
