@@ -279,6 +279,19 @@ export default function Index() {
             {status}
           </motion.p>
 
+          {/* Live transcript */}
+          {(isListening || interimText) && (
+            <div className="glass rounded-full px-4 py-2 border border-primary/30 max-w-md">
+              <p className="text-xs text-muted-foreground inline">
+                {language === "ta" ? "கேட்பது: " : "Hearing: "}
+              </p>
+              <span className="text-sm font-display text-foreground">
+                {interimText || (language === "ta" ? "பேசுங்கள்..." : "speak now...")}
+                <span className="text-primary animate-pulse">|</span>
+              </span>
+            </div>
+          )}
+
           {isListening && (
             <motion.div
               initial={{ scale: 0 }}
