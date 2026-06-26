@@ -40,15 +40,13 @@ export default function Index() {
       setLanguageChosen(true);
       setShowWelcomeCard(false);
       setStatus("தமிழ் தேர்ந்தெடுக்கப்பட்டது ✓");
-      const catNames = "எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், மருந்துகள்";
-      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்! நீங்கள் சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யலாம். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
+      speak("தமிழ் தேர்ந்தெடுக்கப்பட்டது. வகையைச் சொல்ல ஒரு முறை கண் சிமிட்டுங்கள்.");
     } else {
       setLanguage("en");
       setLanguageChosen(true);
       setShowWelcomeCard(false);
       setStatus("English selected ✓");
-      const catNames = categories.map(c => c.name).join(", ");
-      speak(`English selected. Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Available categories: ${catNames}. Blink once or press B to start voice search.`);
+      speak("English selected. Blink once or press B, then say a category name.");
     }
   };
 
