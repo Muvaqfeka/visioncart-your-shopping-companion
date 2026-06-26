@@ -124,16 +124,13 @@ export default function Index() {
   });
 
   useEffect(() => {
-    if (!welcomed.current) {
-      welcomed.current = true;
-      setTimeout(() => {
-        setStatus(t("chooseLanguage"));
-        speak("Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Your voice and eyes are all you need. No help needed, no touch required. Please say Tamil for Tamil, or English to continue in English. You can also blink once or press B to choose.").then(() => {
-          const catNames = categories.map(c => c.name).join(", ");
-          speak(`We have ${categories.length} categories for you: ${catNames}. Choose your language to get started!`);
-        });
-      }, 5500);
-    }
+    if (welcomed.current) return;
+    welcomed.current = true;
+    const timer = setTimeout(() => {
+      setStatus(t("chooseLanguage"));
+      speak("Welcome to Smart Vision Cart. Shop with independence, confidence, and ease. Please say Tamil or English to continue.");
+    }, 5500);
+    return () => clearTimeout(timer);
   }, []);
 
   const getCatDisplayName = (cat: typeof categories[0]) => {
