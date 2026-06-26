@@ -268,8 +268,8 @@ export default function Category() {
               <button
                 onClick={() => {
                   addItem(product);
-                  setStatus(`✅ ${product.name} ${t("addedToCart")}!`);
-                  speak(language === "ta" ? `${product.name} கார்ட்டில் சேர்க்கப்பட்டது.` : `${product.name} added to cart.`);
+                  setStatus(`✅ ${t("addedToCart")}: ${product.name}`);
+                  speak(language === "ta" ? `கார்ட்டில் சேர்க்கப்பட்டது. ${product.name}.` : `Added to cart. ${product.name}.`);
                 }}
                 className="absolute bottom-2 right-2 glass p-2 rounded-full shadow-neon hover:shadow-neon-lg transition-all z-10"
               >
