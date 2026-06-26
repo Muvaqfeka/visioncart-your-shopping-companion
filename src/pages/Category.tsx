@@ -127,9 +127,9 @@ export default function Category() {
       if (p) {
         addItem(p);
         const msg = language === "ta"
-          ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன. அடுத்தது என்று சொல்லி தொடரலாம்.`
-          : `${p.name} added to cart. You now have ${itemCount + 1} items. Say next to continue, or go to cart to checkout.`;
-        setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
+          ? `கார்ட்டில் சேர்க்கப்பட்டது. ${p.name}. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன. கார்ட்டுக்கு செல்ல "go to cart" என்று சொல்லுங்கள்.`
+          : `Added to cart. ${p.name}. You now have ${itemCount + 1} items. Say "go to cart" to checkout, or "next" to continue.`;
+        setStatus(`✅ ${t("addedToCart")}: ${p.name}`);
         speak(msg);
       }
       return;
