@@ -21,6 +21,8 @@ export default function Category() {
   const autoReadDone = useRef(false);
   // Voice-name selection stages: 0 = just announced name, 1 = details read, awaiting add confirm
   const namedStageRef = useRef<{ index: number | null; stage: 0 | 1 }>({ index: null, stage: 0 });
+  // Pending add-to-cart confirmation (set via voice "add to cart", confirmed by double-blink)
+  const pendingAddRef = useRef<number | null>(null);
 
   const category = getCategoryById(categoryId || "");
   const products = getProductsByCategory(categoryId || "");
@@ -106,15 +108,16 @@ export default function Category() {
       return;
     }
 
-    // Add to cart
+    // Add to cart → ask for double-blink confirmation
     if (matchCommand(text, COMMAND_PHRASES.addToCart, 0.5).matched) {
       const p = products[activeIndex];
       if (p) {
-        addItem(p);
+        pendingAddRef.current = activeIndex;
+        namedStageRef.current = { index: null, stage: 0 };
         const msg = language === "ta"
-          ? `கார்ட்டில் சேர்க்கப்பட்டது. ${p.name}. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன. கார்ட்டுக்கு செல்ல "go to cart" என்று சொல்லுங்கள்.`
-          : `Added to cart. ${p.name}. You now have ${itemCount + 1} items. Say "go to cart" to checkout, or "next" to continue.`;
-        setStatus(`✅ ${t("addedToCart")}: ${p.name}`);
+          ? `${p.name} கார்ட்டில் சேர்க்க உறுதிப்படுத்த இரு முறை கண் சிமிட்டுங்கள். ரத்து செய்ய அடுத்தது என்று சொல்லுங்கள்.`
+          : `To confirm adding ${p.name} to your cart, please double blink. Say next to cancel.`;
+        setStatus(`⏳ ${language === "ta" ? "உறுதிப்படுத்தவும்" : "Confirm add"}: ${p.name}`);
         speak(msg);
       }
       return;
@@ -179,6 +182,21 @@ export default function Category() {
   };
 
   const handleDoubleBlink = () => {
+    // Highest priority: confirm a pending voice "add to cart"
+    if (pendingAddRef.current !== null) {
+      const idx = pendingAddRef.current;
+      pendingAddRef.current = null;
+      const p = products[idx];
+      if (p) {
+        addItem(p);
+        const msg = language === "ta"
+          ? `உறுதிப்படுத்தப்பட்டது. ${p.name} கார்ட்டில் சேர்க்கப்பட்டது. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன. கார்ட்டுக்கு செல்ல "go to cart" என்று சொல்லுங்கள்.`
+          : `Confirmed. ${p.name} added to cart. You now have ${itemCount + 1} items. Say go to cart to checkout.`;
+        setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
+        speak(msg);
+      }
+      return;
+    }
     const named = namedStageRef.current;
     if (named.index !== null) {
       const p = products[named.index];
