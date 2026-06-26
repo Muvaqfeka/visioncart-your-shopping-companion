@@ -52,6 +52,13 @@ export default function Index() {
     }
   };
 
+  const helpSpeech = () => {
+    const msg = language === "ta"
+      ? "கிடைக்கும் கட்டளைகள்: எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள் என்று வகை சொல்லுங்கள். கார்ட்டுக்கு செல், கார்ட் பார், கார்ட்டில் சேர், அடுத்தது, பொருளைப் படி, செக்அவுட், உதவி."
+      : "Available commands: Say a category like Electronics, Groceries, Personal Care, or Medicines. Say Go to Cart to open your cart, View Cart to hear it, Add to Cart to add a product, Next or Previous to browse, Read Product for details, Checkout to pay, or Help anytime.";
+    speak(msg);
+  };
+
   const handleSingleBlink = () => {
     if (!languageChosen) {
       setStatus("🎤 " + t("chooseLanguage"));
@@ -59,47 +66,48 @@ export default function Index() {
         ? "கேட்கிறேன். தமிழ் அல்லது ஆங்கிலம் சொல்லுங்கள்."
         : "Listening. Say Tamil or English."
       ).then(() => {
-        startListening(handleLanguageChoice);
+        startListening({ onResult: handleLanguageChoice, retries: 2 });
       });
       return;
     }
 
     setStatus("🎤 " + t("listening"));
     const prompt = language === "ta"
-      ? "கேட்கிறேன். எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், அல்லது மருந்துகள் என்று ஒரு வகையின் பெயரைச் சொல்லுங்கள்."
-      : "Listening. Say a category name like Electronics, Groceries, Personal Care, or Medicines.";
+      ? "கேட்கிறேன். வகையின் பெயரைச் சொல்லுங்கள் — எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள். உதவிக்கு உதவி என்று சொல்லுங்கள்."
+      : "Listening. Say a category like Electronics, Groceries, Personal Care, or Medicines. Say Help for commands.";
     speak(prompt).then(() => {
-      startListening((text) => {
-        const lower = text.toLowerCase();
+      startListening({
+        retries: 2,
+        onResult: (text, conf) => {
+          // Help
+          if (matchCommand(text, COMMAND_PHRASES.help, 0.5).matched) {
+            setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help commands");
+            helpSpeech();
+            return;
+          }
+          // Go to cart
+          if (matchCommand(text, COMMAND_PHRASES.goToCart, 0.45).matched) {
+            setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
+            speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Opening your cart now.").then(() => navigate("/checkout"));
+            return;
+          }
 
-        // Help command
-        if (lower.includes("help") || lower.includes("உதவி")) {
-          setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help commands");
-          speak(t("helpCommands"));
-          return;
-        }
-
-        // Go to cart command
-        if (lower.includes("go to cart") || lower.includes("view cart") || lower.includes("கார்ட்டுக்கு செல்") || lower.includes("cart") || lower.includes("கார்ட்")) {
-          setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
-          speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Opening your cart now.").then(() => navigate("/checkout"));
-          return;
-        }
-
-        const cat = findCategoryByVoice(text);
-        if (cat) {
-          const catName = language === "ta"
-            ? cat.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : cat.id === "groceries" ? "மளிகை பொருட்கள்" : cat.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
-            : cat.name;
-          setStatus(`${t("navigatingTo")} ${catName}...`);
-          speak(`${language === "ta" ? "அருமை!" : "Great choice!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
-        } else {
-          setStatus(t("categoryNotFound"));
-          speak(language === "ta"
-            ? "மன்னிக்கவும், அந்த வகை கிடைக்கவில்லை. மீண்டும் கண் சிமிட்டி முயற்சிக்கவும்."
-            : "Sorry, I did not recognize that category. Please blink and try again."
-          );
-        }
+          const cat = findCategoryByVoice(text);
+          if (cat) {
+            const catName = language === "ta"
+              ? cat.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : cat.id === "groceries" ? "மளிகை பொருட்கள்" : cat.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
+              : cat.name;
+            setStatus(`${t("navigatingTo")} ${catName}...`);
+            speak(`${language === "ta" ? "அருமை!" : "Great choice!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
+          } else {
+            // Low-confidence fallback — read what we heard so the user can retry
+            setStatus(`${language === "ta" ? "கேட்டது" : "Heard"}: "${text}"`);
+            speak(language === "ta"
+              ? `மன்னிக்கவும், "${text}" புரியவில்லை. மீண்டும் ஒரு வகையின் பெயரைச் சொல்லுங்கள், அல்லது உதவி என்று சொல்லுங்கள்.`
+              : `Sorry, I heard "${text}" but did not match a category. Please blink and try again, or say Help.`
+            );
+          }
+        },
       });
     });
   };
