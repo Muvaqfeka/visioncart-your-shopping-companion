@@ -59,21 +59,34 @@ export function useSpeechRecognition() {
 
     const recognition = new SR();
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true; // capture interim for partial Tamil/Hinglish phrases
     // Default to Indian English; Tamil mode uses ta-IN.
     recognition.lang = langOverride || (currentLang === "ta" ? "ta-IN" : "en-IN");
-    recognition.maxAlternatives = 5;
+    recognition.maxAlternatives = 8;
 
+    let finalFired = false;
     recognition.onresult = (event: any) => {
-      let best = event.results[0][0].transcript;
-      try {
-        const alts = Array.from(event.results[0] as any) as Array<{ transcript: string; confidence: number }>;
-        alts.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
-        best = alts[0]?.transcript || best;
-      } catch {}
-      setTranscript(best);
-      setIsListening(false);
-      callbackRef.current?.(best);
+      // Find the latest final result; if none, use best interim.
+      let best = "";
+      for (let i = 0; i < event.results.length; i++) {
+        const res = event.results[i];
+        if (res.isFinal) {
+          try {
+            const alts = Array.from(res as any) as Array<{ transcript: string; confidence: number }>;
+            alts.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+            best = alts[0]?.transcript || res[0].transcript;
+          } catch { best = res[0].transcript; }
+        } else if (!best) {
+          best = res[0].transcript;
+        }
+      }
+      if (best && !finalFired) {
+        finalFired = true;
+        setTranscript(best);
+        setIsListening(false);
+        callbackRef.current?.(best);
+        try { recognition.stop(); } catch {}
+      }
     };
 
     recognition.onend = () => setIsListening(false);

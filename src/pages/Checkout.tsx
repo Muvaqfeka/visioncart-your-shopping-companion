@@ -207,10 +207,11 @@ export default function Checkout() {
       started.current = true;
       if (items.length === 0) { speak(language === "ta" ? "கார்ட் காலியாக உள்ளது." : "Cart is empty. Going back.").then(() => navigate("/")); return; }
       const names = items.map((i) => `${i.product.name}`).join(", ");
+      setStatus(language === "ta" ? "கார்ட் சரிபார்ப்பு" : "Reviewing your cart");
       speak(language === "ta"
-        ? `செக்அவுட். ${itemCount} பொருட்கள். மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய். தொடர கண் சிமிட்டுங்கள்.`
-        : `Welcome to checkout. ${itemCount} items: ${names}. Total ${total.toLocaleString("en-IN")} rupees. Blink once or press B to start.`);
-      setStatus(language === "ta" ? "கார்ட்டை பாருங்கள், பிறகு தொடரவும்" : "Review your cart, then blink to proceed");
+        ? `செக்அவுட். ${itemCount} பொருட்கள். மொத்தம் ${total.toLocaleString("en-IN")} ரூபாய்.`
+        : `Welcome to checkout. ${itemCount} items: ${names}. Total ${total.toLocaleString("en-IN")} rupees.`)
+        .then(() => askName()); // auto-start name capture — no blink required
     }
   }, [items, itemCount, total, navigate, userId, language, t]);
 
