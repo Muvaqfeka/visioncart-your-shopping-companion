@@ -21,11 +21,51 @@ interface PaymentPanelProps {
 
 const UPI_VPA = "smartvisioncart@upi";
 
-function buildUpiLink(amount: number, payee: string) {
+function buildUpiQuery(amount: number, payee: string, orderId: string) {
   const params = new URLSearchParams({
-    pa: UPI_VPA, pn: payee, am: amount.toFixed(2), cu: "INR", tn: "Smart Vision Cart Order",
+    pa: UPI_VPA,
+    pn: payee,
+    am: amount.toFixed(2),
+    cu: "INR",
+    tn: `SVC Order ${orderId.slice(0, 8)}`,
+    tr: orderId.slice(0, 16),
   });
-  return `upi://pay?${params.toString()}`;
+  return params.toString();
+}
+
+function isAndroid() {
+  return /Android/i.test(navigator.userAgent);
+}
+function isMobile() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, orderId: string) {
+  const query = buildUpiQuery(amount, payee, orderId);
+  const pkg = app === "gpay" ? "com.google.android.apps.nbu.paisa.user" : "com.phonepe.app";
+
+  // Android: targeted intent URL opens the specific app directly
+  if (isAndroid()) {
+    const intentUrl = `intent://pay?${query}#Intent;scheme=upi;package=${pkg};end`;
+    window.location.href = intentUrl;
+    // fallback to generic upi chooser after a moment
+    setTimeout(() => {
+      window.location.href = `upi://pay?${query}`;
+    }, 1500);
+    return true;
+  }
+
+  // iOS / other mobile: try app-specific scheme, then generic upi://
+  if (isMobile()) {
+    const scheme = app === "gpay" ? `gpay://upi/pay?${query}` : `phonepe://pay?${query}`;
+    window.location.href = scheme;
+    setTimeout(() => { window.location.href = `upi://pay?${query}`; }, 1500);
+    return true;
+  }
+
+  // Desktop: try generic upi link (won't work on most desktops) and signal fallback
+  try { window.location.href = `upi://pay?${query}`; } catch {}
+  return false;
 }
 
 export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
@@ -33,6 +73,7 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [txnId, setTxnId] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
 
   // Offline pay recording state
   const [recording, setRecording] = useState(false);
@@ -46,12 +87,18 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
 
   const openUpi = (m: "gpay" | "phonepe") => {
     setMethod(m);
-    const link = buildUpiLink(amount, payeeName);
+    const appName = m === "gpay" ? "Google Pay" : "PhonePe";
     speak(language === "ta"
-      ? `${m === "gpay" ? "கூகுள் பே" : "போன் பே"} ஐ திறக்கிறது. பணம் செலுத்திய பின் UPI ஐடி ஐ உள்ளிடுங்கள்.`
-      : `Opening ${m === "gpay" ? "Google Pay" : "PhonePe"}. After paying, enter the 12-digit UPI transaction ID to submit for verification.`);
-    try { window.location.href = link; } catch {}
+      ? `${m === "gpay" ? "கூகுள் பே" : "போன் பே"} ஐ திறக்கிறது. பணம் செலுத்திய பின் பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+      : `Opening ${appName}. After paying, enter the transaction ID to confirm your order.`);
+    const launched = launchUpiApp(m, amount, payeeName, orderId);
+    if (!launched) {
+      // Desktop fallback: show the upi link so it can be scanned/copied
+      setDesktopUpi(`upi://pay?${buildUpiQuery(amount, payeeName, orderId)}`);
+      toast.info("Open this UPI link on your phone to pay");
+    }
   };
+
 
   const submitUpi = async () => {
     if (!txnId.trim() || txnId.trim().length < 6) {
@@ -168,19 +215,32 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
         <div className="glass rounded-xl p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {language === "ta"
-              ? "உங்கள் UPI ஆப்பில் பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள். வொர்க்கர் சரிபார்த்தபின் ஆர்டர் உறுதியாகும்."
-              : "After paying in your UPI app, paste the 12-digit transaction ID below. A worker will verify it and confirm your order."}
+              ? `${method === "gpay" ? "கூகுள் பே" : "போன் பே"} திறக்கப்பட்டது. பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+              : `${method === "gpay" ? "Google Pay" : "PhonePe"} should have opened. After paying, paste the UPI transaction ID below to confirm your order.`}
           </p>
+          <Button
+            variant="secondary"
+            onClick={() => launchUpiApp(method as "gpay" | "phonepe", amount, payeeName, orderId)}
+            className="w-full"
+          >
+            <Smartphone className="w-4 h-4 mr-1" /> Re-open {method === "gpay" ? "Google Pay" : "PhonePe"}
+          </Button>
+          {desktopUpi && (
+            <p className="text-[11px] text-muted-foreground break-all">
+              Desktop? Open this on your phone: <span className="text-primary">{desktopUpi}</span>
+            </p>
+          )}
           <Input placeholder="e.g. 412345678901" value={txnId} onChange={(e) => setTxnId(e.target.value)} maxLength={32} />
           <div className="flex gap-2">
             <Button onClick={submitUpi} disabled={submitting} className="flex-1">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-              Submit for verification
+              Confirm payment
             </Button>
-            <Button variant="outline" onClick={() => { setMethod(null); setTxnId(""); }}>Back</Button>
+            <Button variant="outline" onClick={() => { setMethod(null); setTxnId(""); setDesktopUpi(null); }}>Back</Button>
           </div>
         </div>
       )}
+
 
       {method === "offline" && (
         <div className="glass rounded-xl p-4 space-y-3">
