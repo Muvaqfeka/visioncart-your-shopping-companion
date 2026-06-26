@@ -51,10 +51,26 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     wasClosed: false,
     blinkTimes: [] as number[],
     pendingTimer: null as ReturnType<typeof setTimeout> | null,
+    cooldownUntil: 0,
   });
+
+  const isBusy = () => {
+    const st = blinkStateRef.current;
+    if (Date.now() < st.cooldownUntil) return true;
+    try {
+      if (typeof window !== "undefined" && window.speechSynthesis?.speaking) return true;
+    } catch {}
+    return false;
+  };
+
+  const triggerCooldown = () => {
+    blinkStateRef.current.cooldownUntil = Date.now() + POST_ACTION_COOLDOWN;
+  };
 
   const handleBlink = useCallback(() => {
     const st = blinkStateRef.current;
+    // Ignore blinks while a previous action / speech is still in progress
+    if (isBusy()) return;
     const now = Date.now();
     st.blinkTimes.push(now);
     st.blinkTimes = st.blinkTimes.filter((t) => now - t < DOUBLE_BLINK_WINDOW + 200);
@@ -65,14 +81,19 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
       const gap = st.blinkTimes[st.blinkTimes.length - 1] - st.blinkTimes[st.blinkTimes.length - 2];
       if (gap < DOUBLE_BLINK_WINDOW) {
         st.blinkTimes = [];
+        triggerCooldown();
         callbacksRef.current.onDoubleBlink?.();
+        // extend cooldown a bit after callback so any speech started inside it is respected
+        setTimeout(triggerCooldown, 50);
         return;
       }
     }
 
     st.pendingTimer = setTimeout(() => {
       st.blinkTimes = [];
+      triggerCooldown();
       callbacksRef.current.onSingleBlink?.();
+      setTimeout(triggerCooldown, 50);
     }, DOUBLE_BLINK_WINDOW);
   }, []);
 
