@@ -174,7 +174,7 @@ export default function Category() {
   const handleSingleBlink = () => {
     setStatus("🎤 " + t("listening"));
     speak(language === "ta" ? "கேட்கிறேன்." : "Listening.").then(() => {
-      startListening(handleVoiceCommand);
+      startListening({ onResult: handleVoiceCommand, retries: 2 });
     });
   };
 
