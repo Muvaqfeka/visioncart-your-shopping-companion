@@ -6,6 +6,7 @@ const LEFT_EYE = { p1: 362, p2: 385, p3: 387, p4: 263, p5: 373, p6: 380 };
 const EAR_THRESHOLD = 0.23;
 const DOUBLE_BLINK_WINDOW = 900;
 const BLINK_MIN_DURATION = 50;
+const POST_ACTION_COOLDOWN = 1400;
 
 interface Point { x: number; y: number; z: number }
 
