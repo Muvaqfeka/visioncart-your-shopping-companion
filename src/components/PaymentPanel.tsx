@@ -215,19 +215,32 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
         <div className="glass rounded-xl p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {language === "ta"
-              ? "உங்கள் UPI ஆப்பில் பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள். வொர்க்கர் சரிபார்த்தபின் ஆர்டர் உறுதியாகும்."
-              : "After paying in your UPI app, paste the 12-digit transaction ID below. A worker will verify it and confirm your order."}
+              ? `${method === "gpay" ? "கூகுள் பே" : "போன் பே"} திறக்கப்பட்டது. பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+              : `${method === "gpay" ? "Google Pay" : "PhonePe"} should have opened. After paying, paste the UPI transaction ID below to confirm your order.`}
           </p>
+          <Button
+            variant="secondary"
+            onClick={() => launchUpiApp(method as "gpay" | "phonepe", amount, payeeName, orderId)}
+            className="w-full"
+          >
+            <Smartphone className="w-4 h-4 mr-1" /> Re-open {method === "gpay" ? "Google Pay" : "PhonePe"}
+          </Button>
+          {desktopUpi && (
+            <p className="text-[11px] text-muted-foreground break-all">
+              Desktop? Open this on your phone: <span className="text-primary">{desktopUpi}</span>
+            </p>
+          )}
           <Input placeholder="e.g. 412345678901" value={txnId} onChange={(e) => setTxnId(e.target.value)} maxLength={32} />
           <div className="flex gap-2">
             <Button onClick={submitUpi} disabled={submitting} className="flex-1">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4 mr-1" />}
-              Submit for verification
+              Confirm payment
             </Button>
-            <Button variant="outline" onClick={() => { setMethod(null); setTxnId(""); }}>Back</Button>
+            <Button variant="outline" onClick={() => { setMethod(null); setTxnId(""); setDesktopUpi(null); }}>Back</Button>
           </div>
         </div>
       )}
+
 
       {method === "offline" && (
         <div className="glass rounded-xl p-4 space-y-3">
