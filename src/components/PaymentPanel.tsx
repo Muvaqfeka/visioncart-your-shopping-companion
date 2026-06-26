@@ -68,6 +68,38 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
   return false;
 }
 
+export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
+  const { language, t } = useLanguage();
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [txnId, setTxnId] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
+
+  // Offline pay recording state
+  const [recording, setRecording] = useState(false);
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const recRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const videoElRef = useRef<HTMLVideoElement | null>(null);
+
+  const openUpi = (m: "gpay" | "phonepe") => {
+    setMethod(m);
+    const appName = m === "gpay" ? "Google Pay" : "PhonePe";
+    speak(language === "ta"
+      ? `${m === "gpay" ? "கூகுள் பே" : "போன் பே"} ஐ திறக்கிறது. பணம் செலுத்திய பின் பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+      : `Opening ${appName}. After paying, enter the transaction ID to confirm your order.`);
+    const launched = launchUpiApp(m, amount, payeeName, orderId);
+    if (!launched) {
+      // Desktop fallback: show the upi link so it can be scanned/copied
+      setDesktopUpi(`upi://pay?${buildUpiQuery(amount, payeeName, orderId)}`);
+      toast.info("Open this UPI link on your phone to pay");
+    }
+  };
+
+
   const submitUpi = async () => {
     if (!txnId.trim() || txnId.trim().length < 6) {
       toast.error("Enter the UPI transaction ID from your payment app");
