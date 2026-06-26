@@ -21,6 +21,8 @@ export default function Category() {
   const autoReadDone = useRef(false);
   // Voice-name selection stages: 0 = just announced name, 1 = details read, awaiting add confirm
   const namedStageRef = useRef<{ index: number | null; stage: 0 | 1 }>({ index: null, stage: 0 });
+  // Pending add-to-cart confirmation (set via voice "add to cart", confirmed by double-blink)
+  const pendingAddRef = useRef<number | null>(null);
 
   const category = getCategoryById(categoryId || "");
   const products = getProductsByCategory(categoryId || "");
