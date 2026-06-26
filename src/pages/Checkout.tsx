@@ -79,19 +79,28 @@ export default function Checkout() {
   const askName = () => {
     setStep("name"); setStatus(t("sayYourName"));
     speak(language === "ta" ? "உங்கள் முழு பெயரைச் சொல்லுங்கள்." : "Please say your full name.").then(() => {
-      startListening((text) => {
-        setName(text);
-        speak(language === "ta" ? `${text}. இப்போது உங்கள் தொலைபேசி எண்.` : `Got it, ${text}. Now your phone number.`).then(askPhone);
+      startListening({
+        onInterim: (t) => setName(t),
+        onResult: (text) => {
+          setName(text);
+          speak(language === "ta" ? `${text}. இப்போது உங்கள் தொலைபேசி எண்.` : `Got it, ${text}. Now your phone number.`).then(askPhone);
+        },
+        retries: 2,
       });
     });
   };
 
   const askPhone = () => {
     setStep("phone"); setStatus(t("sayPhone"));
-    startListening((text) => {
-      setPhone(text);
-      speak(language === "ta" ? `தொலைபேசி: ${spellOutPhone(text)}.` : `Phone number: ${spellOutPhone(text)}. Starting verification call.`)
-        .then(() => simulateCall(text));
+    startListening({
+      onInterim: (t) => setPhone(t.replace(/[^0-9 ]/g, "")),
+      onResult: (text) => {
+        const cleaned = text.replace(/[^0-9]/g, "");
+        setPhone(cleaned || text);
+        speak(language === "ta" ? `தொலைபேசி: ${spellOutPhone(text)}.` : `Phone number: ${spellOutPhone(text)}. Starting verification call.`)
+          .then(() => simulateCall(cleaned || text));
+      },
+      retries: 2,
     });
   };
 
