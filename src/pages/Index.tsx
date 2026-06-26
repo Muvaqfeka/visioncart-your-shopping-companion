@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 export default function Index() {
   const navigate = useNavigate();
   const { itemCount } = useCart();
-  const { isListening, startListening } = useSpeechRecognition();
+  const { isListening, interimText, startListening } = useSpeechRecognition();
   const { language, setLanguage, t } = useLanguage();
   const [status, setStatus] = useState("Initializing...");
   const welcomed = useRef(false);
