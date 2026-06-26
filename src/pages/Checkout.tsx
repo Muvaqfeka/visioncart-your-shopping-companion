@@ -26,7 +26,7 @@ const DELIVERY_LABELS = ["placed", "packed", "out_for_delivery", "delivered"] as
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, total, clearCart, itemCount } = useCart();
-  const { isListening, startListening } = useSpeechRecognition();
+  const { isListening, interimText, startListening } = useSpeechRecognition();
   const { language, t } = useLanguage();
   const [step, setStep] = useState<Step>("review");
   const [userId, setUserId] = useState<string | null>(null);
@@ -79,19 +79,28 @@ export default function Checkout() {
   const askName = () => {
     setStep("name"); setStatus(t("sayYourName"));
     speak(language === "ta" ? "உங்கள் முழு பெயரைச் சொல்லுங்கள்." : "Please say your full name.").then(() => {
-      startListening((text) => {
-        setName(text);
-        speak(language === "ta" ? `${text}. இப்போது உங்கள் தொலைபேசி எண்.` : `Got it, ${text}. Now your phone number.`).then(askPhone);
+      startListening({
+        onInterim: (t) => setName(t),
+        onResult: (text) => {
+          setName(text);
+          speak(language === "ta" ? `${text}. இப்போது உங்கள் தொலைபேசி எண்.` : `Got it, ${text}. Now your phone number.`).then(askPhone);
+        },
+        retries: 2,
       });
     });
   };
 
   const askPhone = () => {
     setStep("phone"); setStatus(t("sayPhone"));
-    startListening((text) => {
-      setPhone(text);
-      speak(language === "ta" ? `தொலைபேசி: ${spellOutPhone(text)}.` : `Phone number: ${spellOutPhone(text)}. Starting verification call.`)
-        .then(() => simulateCall(text));
+    startListening({
+      onInterim: (t) => setPhone(t.replace(/[^0-9 ]/g, "")),
+      onResult: (text) => {
+        const cleaned = text.replace(/[^0-9]/g, "");
+        setPhone(cleaned || text);
+        speak(language === "ta" ? `தொலைபேசி: ${spellOutPhone(text)}.` : `Phone number: ${spellOutPhone(text)}. Starting verification call.`)
+          .then(() => simulateCall(cleaned || text));
+      },
+      retries: 2,
     });
   };
 
@@ -255,10 +264,24 @@ export default function Checkout() {
           ))}
         </div>
 
-        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-4 mb-6 text-center">
+        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-4 mb-3 text-center">
           {isListening && <Mic className="w-5 h-5 text-primary animate-pulse mx-auto mb-2" />}
           <p className="text-sm text-primary font-display text-glow">{status}</p>
         </motion.div>
+
+        {/* Live STT transcript so user can verify what's being heard */}
+        {(isListening || interimText) && (step === "name" || step === "phone") && (
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-lg p-3 mb-6 border border-primary/30">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+              {language === "ta" ? "நேரடி கேட்பு" : "Live transcript"}
+            </p>
+            <p className="text-base font-display text-foreground min-h-[1.5rem]">
+              {interimText || (language === "ta" ? "பேசுங்கள்..." : "Speak now...")}
+              <span className="text-primary animate-pulse">|</span>
+            </p>
+          </motion.div>
+        )}
 
         {step === "calling" && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass rounded-lg p-4 mb-6">

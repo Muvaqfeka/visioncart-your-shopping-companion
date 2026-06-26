@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles } from "lucide-react";
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
-import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
+import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
 import { categories, findCategoryByVoice } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -12,7 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 export default function Index() {
   const navigate = useNavigate();
   const { itemCount } = useCart();
-  const { isListening, startListening } = useSpeechRecognition();
+  const { isListening, interimText, startListening } = useSpeechRecognition();
   const { language, setLanguage, t } = useLanguage();
   const [status, setStatus] = useState("Initializing...");
   const welcomed = useRef(false);
@@ -33,22 +33,30 @@ export default function Index() {
   };
 
   const handleLanguageChoice = (text: string) => {
-    const lower = text.toLowerCase();
-    if (lower.includes("tamil") || lower.includes("தமிழ்")) {
+    const isTamil = matchCommand(text, COMMAND_PHRASES.tamil, 0.5).matched;
+    const isEnglish = matchCommand(text, COMMAND_PHRASES.english, 0.5).matched;
+    if (isTamil && !isEnglish) {
       setLanguage("ta");
       setLanguageChosen(true);
       setShowWelcomeCard(false);
       setStatus("தமிழ் தேர்ந்தெடுக்கப்பட்டது ✓");
       const catNames = "எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், மருந்துகள்";
-      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்! நீங்கள் சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யலாம். உங்கள் குரலும் கண்களும் மட்டுமே போதும். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
+      speak(`தமிழ் தேர்ந்தெடுக்கப்பட்டது. ஸ்மார்ட் விஷன் கார்ட்டுக்கு வரவேற்கிறோம்! நீங்கள் சுதந்திரமாகவும், தன்னம்பிக்கையுடனும், எளிதாகவும் ஷாப்பிங் செய்யலாம். கிடைக்கும் வகைகள்: ${catNames}. குரல் தேடலை தொடங்க ஒரு முறை கண் சிமிட்டுங்கள்.`);
     } else {
       setLanguage("en");
       setLanguageChosen(true);
       setShowWelcomeCard(false);
       setStatus("English selected ✓");
       const catNames = categories.map(c => c.name).join(", ");
-      speak(`English selected. Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Your voice and eyes are all you need. No touch required. Available categories are: ${catNames}. Blink once or press B to start voice search.`);
+      speak(`English selected. Welcome to Smart Vision Cart! You can shop with complete independence, confidence, and ease. Available categories: ${catNames}. Blink once or press B to start voice search.`);
     }
+  };
+
+  const helpSpeech = () => {
+    const msg = language === "ta"
+      ? "கிடைக்கும் கட்டளைகள்: எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள் என்று வகை சொல்லுங்கள். கார்ட்டுக்கு செல், கார்ட் பார், கார்ட்டில் சேர், அடுத்தது, பொருளைப் படி, செக்அவுட், உதவி."
+      : "Available commands: Say a category like Electronics, Groceries, Personal Care, or Medicines. Say Go to Cart to open your cart, View Cart to hear it, Add to Cart to add a product, Next or Previous to browse, Read Product for details, Checkout to pay, or Help anytime.";
+    speak(msg);
   };
 
   const handleSingleBlink = () => {
@@ -58,47 +66,48 @@ export default function Index() {
         ? "கேட்கிறேன். தமிழ் அல்லது ஆங்கிலம் சொல்லுங்கள்."
         : "Listening. Say Tamil or English."
       ).then(() => {
-        startListening(handleLanguageChoice);
+        startListening({ onResult: handleLanguageChoice, retries: 2 });
       });
       return;
     }
 
     setStatus("🎤 " + t("listening"));
     const prompt = language === "ta"
-      ? "கேட்கிறேன். எலக்ட்ரானிக்ஸ், மளிகை பொருட்கள், அழகு பொருட்கள், அல்லது மருந்துகள் என்று ஒரு வகையின் பெயரைச் சொல்லுங்கள்."
-      : "Listening. Say a category name like Electronics, Groceries, Personal Care, or Medicines.";
+      ? "கேட்கிறேன். வகையின் பெயரைச் சொல்லுங்கள் — எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள். உதவிக்கு உதவி என்று சொல்லுங்கள்."
+      : "Listening. Say a category like Electronics, Groceries, Personal Care, or Medicines. Say Help for commands.";
     speak(prompt).then(() => {
-      startListening((text) => {
-        const lower = text.toLowerCase();
+      startListening({
+        retries: 2,
+        onResult: (text, conf) => {
+          // Help
+          if (matchCommand(text, COMMAND_PHRASES.help, 0.5).matched) {
+            setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help commands");
+            helpSpeech();
+            return;
+          }
+          // Go to cart
+          if (matchCommand(text, COMMAND_PHRASES.goToCart, 0.45).matched) {
+            setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
+            speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Opening your cart now.").then(() => navigate("/checkout"));
+            return;
+          }
 
-        // Help command
-        if (lower.includes("help") || lower.includes("உதவி")) {
-          setStatus(language === "ta" ? "உதவி கட்டளைகள்" : "Help commands");
-          speak(t("helpCommands"));
-          return;
-        }
-
-        // Go to cart command
-        if (lower.includes("go to cart") || lower.includes("view cart") || lower.includes("கார்ட்டுக்கு செல்") || lower.includes("cart") || lower.includes("கார்ட்")) {
-          setStatus(language === "ta" ? "கார்ட்டுக்கு செல்கிறது..." : "Going to cart...");
-          speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Opening your cart now.").then(() => navigate("/checkout"));
-          return;
-        }
-
-        const cat = findCategoryByVoice(text);
-        if (cat) {
-          const catName = language === "ta"
-            ? cat.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : cat.id === "groceries" ? "மளிகை பொருட்கள்" : cat.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
-            : cat.name;
-          setStatus(`${t("navigatingTo")} ${catName}...`);
-          speak(`${language === "ta" ? "அருமை!" : "Great choice!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
-        } else {
-          setStatus(t("categoryNotFound"));
-          speak(language === "ta"
-            ? "மன்னிக்கவும், அந்த வகை கிடைக்கவில்லை. மீண்டும் கண் சிமிட்டி முயற்சிக்கவும்."
-            : "Sorry, I did not recognize that category. Please blink and try again."
-          );
-        }
+          const cat = findCategoryByVoice(text);
+          if (cat) {
+            const catName = language === "ta"
+              ? cat.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : cat.id === "groceries" ? "மளிகை பொருட்கள்" : cat.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
+              : cat.name;
+            setStatus(`${t("navigatingTo")} ${catName}...`);
+            speak(`${language === "ta" ? "அருமை!" : "Great choice!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
+          } else {
+            // Low-confidence fallback — read what we heard so the user can retry
+            setStatus(`${language === "ta" ? "கேட்டது" : "Heard"}: "${text}"`);
+            speak(language === "ta"
+              ? `மன்னிக்கவும், "${text}" புரியவில்லை. மீண்டும் ஒரு வகையின் பெயரைச் சொல்லுங்கள், அல்லது உதவி என்று சொல்லுங்கள்.`
+              : `Sorry, I heard "${text}" but did not match a category. Please blink and try again, or say Help.`
+            );
+          }
+        },
       });
     });
   };
@@ -269,6 +278,19 @@ export default function Index() {
           >
             {status}
           </motion.p>
+
+          {/* Live transcript */}
+          {(isListening || interimText) && (
+            <div className="glass rounded-full px-4 py-2 border border-primary/30 max-w-md">
+              <p className="text-xs text-muted-foreground inline">
+                {language === "ta" ? "கேட்பது: " : "Hearing: "}
+              </p>
+              <span className="text-sm font-display text-foreground">
+                {interimText || (language === "ta" ? "பேசுங்கள்..." : "speak now...")}
+                <span className="text-primary animate-pulse">|</span>
+              </span>
+            </div>
+          )}
 
           {isListening && (
             <motion.div
