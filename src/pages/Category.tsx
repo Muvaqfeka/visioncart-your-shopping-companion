@@ -260,10 +260,21 @@ export default function Category() {
         </header>
 
         {/* Status */}
-        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-3 mb-6 flex items-center gap-3">
+        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-3 mb-3 flex items-center gap-3">
           {isListening ? <Mic className="w-4 h-4 text-primary animate-pulse" /> : <Eye className="w-4 h-4 text-primary" />}
           <span className="text-sm text-primary font-display">{status}</span>
         </motion.div>
+
+        {/* Live transcript */}
+        {(isListening || interimText) && (
+          <div className="glass rounded-lg px-3 py-2 mb-6 border border-primary/30 text-sm">
+            <span className="text-xs text-muted-foreground">{language === "ta" ? "கேட்பது: " : "Hearing: "}</span>
+            <span className="text-foreground font-display">
+              {interimText || (language === "ta" ? "பேசுங்கள்..." : "speak now...")}
+              <span className="text-primary animate-pulse">|</span>
+            </span>
+          </div>
+        )}
 
         {/* Products */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
