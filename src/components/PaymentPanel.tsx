@@ -71,6 +71,7 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
 export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [pendingMethod, setPendingMethod] = useState<PaymentMethod | null>(null);
   const [txnId, setTxnId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
@@ -84,6 +85,32 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+
+  const methodLabel = (m: PaymentMethod) => {
+    if (language === "ta") {
+      return m === "gpay" ? "கூகுள் பே" : m === "phonepe" ? "போன் பே" : m === "cod" ? "பணம் கையில் (COD)" : "ஆஃப்லைன் பணம்";
+    }
+    return m === "gpay" ? "Google Pay" : m === "phonepe" ? "PhonePe" : m === "cod" ? "Cash on Delivery" : "Offline cash payment";
+  };
+
+  const requestConfirm = (m: PaymentMethod) => {
+    setPendingMethod(m);
+    const amt = `₹${amount.toLocaleString("en-IN")}`;
+    const msg = language === "ta"
+      ? `நீங்கள் ${methodLabel(m)} மூலம் ${amt} செலுத்த தேர்ந்தெடுத்துள்ளீர்கள். உறுதிப்படுத்த "உறுதி" என்பதை அழுத்துங்கள், அல்லது "ரத்து" என்பதை அழுத்துங்கள்.`
+      : `You selected ${methodLabel(m)} for ${amt}. Press Confirm to proceed, or Cancel to choose another method.`;
+    speak(msg);
+  };
+
+  const proceedAfterConfirm = () => {
+    const m = pendingMethod;
+    setPendingMethod(null);
+    if (!m) return;
+    if (m === "gpay" || m === "phonepe") openUpi(m);
+    else if (m === "cod") chooseCod();
+    else if (m === "offline") startRecording();
+  };
+
 
   const openUpi = (m: "gpay" | "phonepe") => {
     setMethod(m);
