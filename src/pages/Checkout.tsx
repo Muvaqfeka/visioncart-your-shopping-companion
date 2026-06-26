@@ -264,10 +264,24 @@ export default function Checkout() {
           ))}
         </div>
 
-        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-4 mb-6 text-center">
+        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-4 mb-3 text-center">
           {isListening && <Mic className="w-5 h-5 text-primary animate-pulse mx-auto mb-2" />}
           <p className="text-sm text-primary font-display text-glow">{status}</p>
         </motion.div>
+
+        {/* Live STT transcript so user can verify what's being heard */}
+        {(isListening || interimText) && (step === "name" || step === "phone") && (
+          <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-lg p-3 mb-6 border border-primary/30">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+              {language === "ta" ? "நேரடி கேட்பு" : "Live transcript"}
+            </p>
+            <p className="text-base font-display text-foreground min-h-[1.5rem]">
+              {interimText || (language === "ta" ? "பேசுங்கள்..." : "Speak now...")}
+              <span className="text-primary animate-pulse">|</span>
+            </p>
+          </motion.div>
+        )}
 
         {step === "calling" && (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass rounded-lg p-4 mb-6">
