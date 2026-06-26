@@ -26,7 +26,7 @@ const DELIVERY_LABELS = ["placed", "packed", "out_for_delivery", "delivered"] as
 export default function Checkout() {
   const navigate = useNavigate();
   const { items, total, clearCart, itemCount } = useCart();
-  const { isListening, startListening } = useSpeechRecognition();
+  const { isListening, interimText, startListening } = useSpeechRecognition();
   const { language, t } = useLanguage();
   const [step, setStep] = useState<Step>("review");
   const [userId, setUserId] = useState<string | null>(null);
