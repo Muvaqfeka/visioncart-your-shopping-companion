@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mic, Eye, ShoppingCart, Plus } from "lucide-react";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
-import { speak, useSpeechRecognition } from "@/hooks/useSpeech";
+import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
 import { getCategoryById, getProductsByCategory } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
