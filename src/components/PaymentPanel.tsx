@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2 } from "lucide-react";
+import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2, XCircle, Volume2 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { speak } from "@/hooks/useSpeech";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,6 +71,7 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
 export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [pendingMethod, setPendingMethod] = useState<PaymentMethod | null>(null);
   const [txnId, setTxnId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
@@ -84,6 +85,32 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+
+  const methodLabel = (m: PaymentMethod) => {
+    if (language === "ta") {
+      return m === "gpay" ? "கூகுள் பே" : m === "phonepe" ? "போன் பே" : m === "cod" ? "பணம் கையில் (COD)" : "ஆஃப்லைன் பணம்";
+    }
+    return m === "gpay" ? "Google Pay" : m === "phonepe" ? "PhonePe" : m === "cod" ? "Cash on Delivery" : "Offline cash payment";
+  };
+
+  const requestConfirm = (m: PaymentMethod) => {
+    setPendingMethod(m);
+    const amt = `₹${amount.toLocaleString("en-IN")}`;
+    const msg = language === "ta"
+      ? `நீங்கள் ${methodLabel(m)} மூலம் ${amt} செலுத்த தேர்ந்தெடுத்துள்ளீர்கள். உறுதிப்படுத்த "உறுதி" என்பதை அழுத்துங்கள், அல்லது "ரத்து" என்பதை அழுத்துங்கள்.`
+      : `You selected ${methodLabel(m)} for ${amt}. Press Confirm to proceed, or Cancel to choose another method.`;
+    speak(msg);
+  };
+
+  const proceedAfterConfirm = () => {
+    const m = pendingMethod;
+    setPendingMethod(null);
+    if (!m) return;
+    if (m === "gpay" || m === "phonepe") openUpi(m);
+    else if (m === "cod") chooseCod();
+    else if (m === "offline") startRecording();
+  };
+
 
   const openUpi = (m: "gpay" | "phonepe") => {
     setMethod(m);
@@ -190,26 +217,87 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       <h3 className="font-display text-sm text-primary text-glow text-center">{t("choosePayment")}</h3>
       <p className="text-xs text-muted-foreground text-center">₹{amount.toLocaleString("en-IN")} {t("total")}</p>
 
-      {!method && (
+      {!method && !pendingMethod && (
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => openUpi("gpay")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
+          <button onClick={() => requestConfirm("gpay")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
             <Smartphone className="w-6 h-6 text-primary" />
             <span className="text-xs font-display text-foreground">{t("payGpay")}</span>
           </button>
-          <button onClick={() => openUpi("phonepe")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
+          <button onClick={() => requestConfirm("phonepe")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
             <Wallet className="w-6 h-6 text-primary" />
             <span className="text-xs font-display text-foreground">{t("payPhonepe")}</span>
           </button>
-          <button onClick={chooseCod} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
+          <button onClick={() => requestConfirm("cod")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
             <CircleDollarSign className="w-6 h-6 text-primary" />
             <span className="text-xs font-display text-foreground">{t("payCash")}</span>
           </button>
-          <button onClick={startRecording} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all border border-primary/40">
+          <button onClick={() => requestConfirm("offline")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all border border-primary/40">
             <Video className="w-6 h-6 text-primary" />
             <span className="text-xs font-display text-foreground">{t("payOffline")}</span>
           </button>
         </div>
       )}
+
+      {pendingMethod && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-xl p-4 space-y-3 border-2 border-primary/60 shadow-neon-lg"
+          role="dialog"
+          aria-live="assertive"
+        >
+          <div className="flex items-center gap-2 text-primary">
+            <Volume2 className="w-4 h-4 animate-pulse" />
+            <span className="text-xs font-display uppercase tracking-wider">
+              {language === "ta" ? "உறுதிப்படுத்தவும்" : "Confirm payment method"}
+            </span>
+          </div>
+          <p className="text-sm text-foreground">
+            {language === "ta"
+              ? `நீங்கள் தேர்ந்தெடுத்தது: `
+              : `You selected: `}
+            <span className="font-display text-primary text-glow">{methodLabel(pendingMethod)}</span>
+          </p>
+          <p className="text-2xl font-display gradient-text text-center">
+            ₹{amount.toLocaleString("en-IN")}
+          </p>
+          <p className="text-[11px] text-muted-foreground text-center">
+            {language === "ta"
+              ? "உறுதி என்று சொல்லுங்கள் அல்லது கீழே அழுத்துங்கள்."
+              : 'Say "Confirm" or press the button below to continue.'}
+          </p>
+          <div className="flex gap-2">
+            <Button onClick={proceedAfterConfirm} className="flex-1">
+              <CheckCircle2 className="w-4 h-4 mr-1" />
+              {language === "ta" ? "உறுதி" : "Confirm"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setPendingMethod(null);
+                speak(language === "ta" ? "ரத்து செய்யப்பட்டது." : "Cancelled. Please choose a payment method.");
+              }}
+            >
+              <XCircle className="w-4 h-4 mr-1" />
+              {language === "ta" ? "ரத்து" : "Cancel"}
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const amt = `₹${amount.toLocaleString("en-IN")}`;
+              speak(language === "ta"
+                ? `${methodLabel(pendingMethod)} மூலம் ${amt}.`
+                : `${methodLabel(pendingMethod)} for ${amt}.`);
+            }}
+            className="w-full text-[11px] text-primary/80 hover:text-primary underline"
+          >
+            <Volume2 className="w-3 h-3 inline mr-1" />
+            {language === "ta" ? "மீண்டும் கேட்க" : "Read it back again"}
+          </button>
+        </motion.div>
+      )}
+
 
       {(method === "gpay" || method === "phonepe") && (
         <div className="glass rounded-xl p-4 space-y-3">
