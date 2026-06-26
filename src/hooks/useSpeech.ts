@@ -59,10 +59,10 @@ export function useSpeechRecognition() {
 
     const recognition = new SR();
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true; // capture interim for partial Tamil/Hinglish phrases
     // Default to Indian English; Tamil mode uses ta-IN.
     recognition.lang = langOverride || (currentLang === "ta" ? "ta-IN" : "en-IN");
-    recognition.maxAlternatives = 5;
+    recognition.maxAlternatives = 8;
 
     recognition.onresult = (event: any) => {
       let best = event.results[0][0].transcript;
