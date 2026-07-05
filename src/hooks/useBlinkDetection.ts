@@ -107,29 +107,49 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     return () => window.removeEventListener("keydown", handler);
   }, [enabled, handleBlink]);
 
-  // Camera setup
+  // Camera setup — auto-start, and expose startCamera() for user-gesture fallback
+  const streamRef = useRef<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+
+  const startCamera = useCallback(async () => {
+    if (streamRef.current) return true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "user" },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+      setCameraReady(true);
+      setIsActive(true);
+      setCameraError(null);
+      return true;
+    } catch (err: any) {
+      const name = err?.name || "Error";
+      setCameraError(
+        name === "NotAllowedError"
+          ? "Camera permission denied. Click Enable Camera and allow access."
+          : name === "NotFoundError"
+          ? "No camera found on this device."
+          : name === "NotReadableError"
+          ? "Camera is in use by another app."
+          : `Camera error: ${name}`
+      );
+      setIsActive(false);
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     if (!enabled) return;
-    let stream: MediaStream | null = null;
-
-    (async () => {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: "user" } });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setCameraReady(true);
-          setIsActive(true);
-        }
-      } catch {
-        setIsActive(false);
-      }
-    })();
-
+    startCamera();
     return () => {
-      stream?.getTracks().forEach((t) => t.stop());
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
     };
-  }, [enabled]);
+  }, [enabled, startCamera]);
 
   // MediaPipe FaceMesh setup
   useEffect(() => {
