@@ -249,18 +249,15 @@ export default function Index() {
           </div>
 
           {(cameraError || !isActive) && (
-            <div className="glass rounded-xl px-4 py-3 border border-primary/40 text-center max-w-md">
-              <p className="text-xs text-muted-foreground mb-2">
-                {cameraError || (language === "ta" ? "கேமராவை இயக்க கிளிக் செய்யவும்" : "Click to enable camera for blink control")}
-              </p>
-              <button
-                onClick={() => startCamera()}
-                className="glass px-4 py-2 rounded-lg font-display text-sm text-primary shadow-neon"
-              >
-                <Camera className="w-4 h-4 inline mr-2" />
-                {language === "ta" ? "கேமராவை இயக்கு" : "Enable Camera"}
-              </button>
-            </div>
+            <CameraTroubleshoot
+              cameraError={cameraError}
+              cameraErrorName={cameraErrorName}
+              isActive={isActive}
+              devices={devices}
+              activeDeviceId={activeDeviceId}
+              onRetry={startCamera}
+              onRefreshDevices={refreshDevices}
+            />
           )}
 
           {/* Status indicators */}
