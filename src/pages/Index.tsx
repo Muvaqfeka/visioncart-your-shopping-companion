@@ -427,6 +427,16 @@ export default function Index() {
           <p>🎤 <strong className="text-foreground">"{t("next")}"</strong> · <strong className="text-foreground">"{t("addToCart")}"</strong> · <strong className="text-foreground">"{t("viewCart")}"</strong> · <strong className="text-foreground">"{t("help")}"</strong></p>
         </div>
       </div>
+
+      <BlinkCalibration
+        open={showCalibration}
+        onClose={() => setShowCalibration(false)}
+        ear={ear}
+        threshold={threshold}
+        setThreshold={setThreshold}
+        videoRef={videoRef}
+        landmarks={landmarks}
+      />
     </div>
   );
 }
