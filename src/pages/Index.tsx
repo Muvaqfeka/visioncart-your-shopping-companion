@@ -247,19 +247,47 @@ export default function Index() {
 
         {/* Camera Feed + Status */}
         <div className="flex flex-col items-center gap-5 mb-10">
-          <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-glow shadow-neon-lg">
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover scale-x-[-1]"
-              playsInline
-              muted
-            />
-            <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-full">
-              <div className="w-full h-1 bg-primary/40 animate-scan" />
+          {!audioOnly && (
+            <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-2 border-glow shadow-neon-lg">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover scale-x-[-1]"
+                playsInline
+                muted
+              />
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-full">
+                <div className="w-full h-1 bg-primary/40 animate-scan" />
+              </div>
             </div>
-          </div>
+          )}
 
-          {(cameraError || !isActive) && (
+          {audioOnly && (
+            <div className="glass rounded-2xl px-5 py-4 border border-accent/40 max-w-md text-center space-y-3">
+              <div className="inline-flex items-center gap-2 text-accent">
+                <Mic className="w-5 h-5" />
+                <span className="font-display text-sm">Audio-only mode</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Camera is off. Use voice or the buttons below to browse and checkout.
+              </p>
+              <div className="flex gap-2 justify-center">
+                <button
+                  onClick={manualBlink}
+                  className="glass px-4 py-2 rounded-lg text-xs font-display text-primary shadow-neon"
+                >
+                  🎤 Start listening
+                </button>
+                <button
+                  onClick={() => setAudioOnly(false)}
+                  className="glass px-4 py-2 rounded-lg text-xs font-display text-muted-foreground"
+                >
+                  Re-enable camera
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!audioOnly && (cameraError || !isActive) && (
             <CameraTroubleshoot
               cameraError={cameraError}
               cameraErrorName={cameraErrorName}
@@ -268,6 +296,43 @@ export default function Index() {
               activeDeviceId={activeDeviceId}
               onRetry={startCamera}
               onRefreshDevices={refreshDevices}
+              suggestAudioOnly={suggestAudioOnly}
+              onEnableAudioOnly={() => {
+                setAudioOnly(true);
+                speak(language === "ta"
+                  ? "ஒலி மட்டும் முறை இயக்கப்பட்டது. குரலால் ஷாப்பிங் செய்யலாம்."
+                  : "Audio-only mode enabled. You can shop using your voice."
+                );
+              }}
+            />
+          )}
+
+          {/* Calibration & Debug toggles */}
+          {!audioOnly && isActive && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCalibration(true)}
+                className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-primary inline-flex items-center gap-1.5"
+              >
+                <Sliders className="w-3.5 h-3.5" /> Calibrate blink
+              </button>
+              <button
+                onClick={() => setShowDebug((v) => !v)}
+                className={`glass px-3 py-1.5 rounded-lg text-[11px] font-display inline-flex items-center gap-1.5 ${showDebug ? "text-accent" : "text-muted-foreground"}`}
+              >
+                <Activity className="w-3.5 h-3.5" /> {showDebug ? "Hide" : "Show"} debug
+              </button>
+            </div>
+          )}
+
+          {!audioOnly && showDebug && (
+            <BlinkDebugOverlay
+              landmarks={landmarks}
+              ear={ear}
+              threshold={threshold}
+              blinkEvents={blinkEvents}
+              visible={showDebug}
+              onClose={() => setShowDebug(false)}
             />
           )}
 
