@@ -3,10 +3,14 @@ import { useEffect, useRef, useState, useCallback } from "react";
 // Eye Aspect Ratio landmarks for MediaPipe FaceMesh (468 points)
 const RIGHT_EYE = { p1: 33, p2: 160, p3: 158, p4: 133, p5: 153, p6: 144 };
 const LEFT_EYE = { p1: 362, p2: 385, p3: 387, p4: 263, p5: 373, p6: 380 };
-const EAR_THRESHOLD = 0.23;
+const DEFAULT_THRESHOLD = 0.23;
 const DOUBLE_BLINK_WINDOW = 900;
-const BLINK_MIN_DURATION = 50;
 const POST_ACTION_COOLDOWN = 1400;
+const MAX_CAMERA_RETRIES_BEFORE_AUDIO = 2;
+
+const LS_DEVICE = "svc.cameraDeviceId";
+const LS_THRESHOLD = "svc.blinkThreshold";
+const LS_AUDIO_ONLY = "svc.audioOnly";
 
 interface Point { x: number; y: number; z: number }
 
@@ -33,10 +37,38 @@ function loadScript(src: string): Promise<void> {
   });
 }
 
+export interface BlinkEvent {
+  t: number;
+  type: "single" | "double" | "raw";
+}
+
 interface BlinkOptions {
   onSingleBlink?: () => void;
   onDoubleBlink?: () => void;
   enabled?: boolean;
+}
+
+const EYE_LANDMARK_IDS = [
+  ...Object.values(LEFT_EYE),
+  ...Object.values(RIGHT_EYE),
+];
+
+function readStoredThreshold(): number {
+  try {
+    const raw = localStorage.getItem(LS_THRESHOLD);
+    if (!raw) return DEFAULT_THRESHOLD;
+    const v = parseFloat(raw);
+    if (Number.isFinite(v) && v > 0.05 && v < 0.5) return v;
+  } catch {}
+  return DEFAULT_THRESHOLD;
+}
+
+function readStoredDevice(): string | null {
+  try { return localStorage.getItem(LS_DEVICE); } catch { return null; }
+}
+
+function readStoredAudioOnly(): boolean {
+  try { return localStorage.getItem(LS_AUDIO_ONLY) === "1"; } catch { return false; }
 }
 
 export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true }: BlinkOptions) {
@@ -46,6 +78,38 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
   const [cameraReady, setCameraReady] = useState(false);
   const callbacksRef = useRef({ onSingleBlink, onDoubleBlink });
   callbacksRef.current = { onSingleBlink, onDoubleBlink };
+
+  // Live debug state
+  const [ear, setEar] = useState(1);
+  const [landmarks, setLandmarks] = useState<Array<{ x: number; y: number }>>([]);
+  const [blinkEvents, setBlinkEvents] = useState<BlinkEvent[]>([]);
+  const pushEvent = (type: BlinkEvent["type"]) => {
+    setBlinkEvents((prev) => [{ t: Date.now(), type }, ...prev].slice(0, 20));
+  };
+
+  // Adjustable threshold (persisted)
+  const [threshold, setThresholdState] = useState<number>(() => readStoredThreshold());
+  const thresholdRef = useRef(threshold);
+  useEffect(() => { thresholdRef.current = threshold; }, [threshold]);
+  const setThreshold = useCallback((v: number) => {
+    const clamped = Math.min(0.45, Math.max(0.1, v));
+    setThresholdState(clamped);
+    try { localStorage.setItem(LS_THRESHOLD, String(clamped)); } catch {}
+  }, []);
+
+  // Audio-only mode (persisted)
+  const [audioOnly, setAudioOnlyState] = useState<boolean>(() => readStoredAudioOnly());
+  const setAudioOnly = useCallback((v: boolean) => {
+    setAudioOnlyState(v);
+    try { localStorage.setItem(LS_AUDIO_ONLY, v ? "1" : "0"); } catch {}
+    if (v) {
+      // Stop any existing stream
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setIsActive(false);
+      setCameraReady(false);
+    }
+  }, []);
 
   const blinkStateRef = useRef({
     wasClosed: false,
@@ -69,7 +133,7 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const handleBlink = useCallback(() => {
     const st = blinkStateRef.current;
-    // Ignore blinks while a previous action / speech is still in progress
+    pushEvent("raw");
     if (isBusy()) return;
     const now = Date.now();
     st.blinkTimes.push(now);
@@ -82,8 +146,8 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
       if (gap < DOUBLE_BLINK_WINDOW) {
         st.blinkTimes = [];
         triggerCooldown();
+        pushEvent("double");
         callbacksRef.current.onDoubleBlink?.();
-        // extend cooldown a bit after callback so any speech started inside it is respected
         setTimeout(triggerCooldown, 50);
         return;
       }
@@ -92,6 +156,7 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     st.pendingTimer = setTimeout(() => {
       st.blinkTimes = [];
       triggerCooldown();
+      pushEvent("single");
       callbacksRef.current.onSingleBlink?.();
       setTimeout(triggerCooldown, 50);
     }, DOUBLE_BLINK_WINDOW);
@@ -107,12 +172,14 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     return () => window.removeEventListener("keydown", handler);
   }, [enabled, handleBlink]);
 
-  // Camera setup — auto-start, and expose startCamera() for user-gesture fallback
+  // Camera setup
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraErrorName, setCameraErrorName] = useState<string | null>(null);
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const failCountRef = useRef(0);
 
   const refreshDevices = useCallback(async () => {
     try {
@@ -122,11 +189,12 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     } catch {}
   }, []);
 
-  const startCamera = useCallback(async (deviceId?: string) => {
+  const startCamera = useCallback(async (deviceId?: string, opts?: { persist?: boolean }) => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    setRetryCount((c) => c + 1);
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         throw Object.assign(new Error("getUserMedia not supported"), { name: "NotSupportedError" });
@@ -134,9 +202,10 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
       if (typeof window !== "undefined" && !window.isSecureContext && location.hostname !== "localhost") {
         throw Object.assign(new Error("Insecure context"), { name: "SecurityError" });
       }
+      const resolvedId = deviceId ?? readStoredDevice() ?? undefined;
       const constraints: MediaStreamConstraints = {
-        video: deviceId
-          ? { deviceId: { exact: deviceId }, width: 640, height: 480 }
+        video: resolvedId
+          ? { deviceId: { exact: resolvedId }, width: 640, height: 480 }
           : { width: 640, height: 480, facingMode: "user" },
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -146,15 +215,21 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
         await videoRef.current.play().catch(() => {});
       }
       const track = stream.getVideoTracks()[0];
-      setActiveDeviceId((track?.getSettings() as any)?.deviceId || deviceId || null);
+      const settledId = (track?.getSettings() as any)?.deviceId || resolvedId || null;
+      setActiveDeviceId(settledId);
+      if (opts?.persist !== false && settledId) {
+        try { localStorage.setItem(LS_DEVICE, settledId); } catch {}
+      }
       setCameraReady(true);
       setIsActive(true);
       setCameraError(null);
       setCameraErrorName(null);
+      failCountRef.current = 0;
       refreshDevices();
       return true;
     } catch (err: any) {
       const name = err?.name || "Error";
+      failCountRef.current += 1;
       setCameraErrorName(name);
       setCameraError(
         name === "NotAllowedError" || name === "PermissionDeniedError"
@@ -177,7 +252,7 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
   }, [refreshDevices]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || audioOnly) return;
     startCamera();
     refreshDevices();
     const handler = () => refreshDevices();
@@ -187,11 +262,11 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
       streamRef.current = null;
       navigator.mediaDevices?.removeEventListener?.("devicechange", handler);
     };
-  }, [enabled, startCamera, refreshDevices]);
+  }, [enabled, audioOnly, startCamera, refreshDevices]);
 
   // MediaPipe FaceMesh setup
   useEffect(() => {
-    if (!cameraReady || !enabled) return;
+    if (!cameraReady || !enabled || audioOnly) return;
     let cancelled = false;
     let camera: any = null;
 
@@ -218,14 +293,20 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
         });
 
         faceMesh.onResults((results: any) => {
-          if (!results.multiFaceLandmarks?.[0]) return;
+          if (!results.multiFaceLandmarks?.[0]) {
+            setLandmarks([]);
+            return;
+          }
           const lm = results.multiFaceLandmarks[0] as Point[];
-          const ear = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
+          const eyeEar = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
+          setEar(eyeEar);
+          setLandmarks(EYE_LANDMARK_IDS.map((i) => ({ x: lm[i].x, y: lm[i].y })));
           const st = blinkStateRef.current;
+          const thr = thresholdRef.current;
 
-          if (ear < EAR_THRESHOLD && !st.wasClosed) {
+          if (eyeEar < thr && !st.wasClosed) {
             st.wasClosed = true;
-          } else if (ear >= EAR_THRESHOLD && st.wasClosed) {
+          } else if (eyeEar >= thr && st.wasClosed) {
             st.wasClosed = false;
             handleBlink();
           }
@@ -249,8 +330,31 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
       cancelled = true;
       camera?.stop?.();
     };
-  }, [cameraReady, enabled, handleBlink]);
+  }, [cameraReady, enabled, audioOnly, handleBlink]);
 
-  return { videoRef, isActive, mediaPipeLoaded, cameraReady, cameraError, cameraErrorName, startCamera, devices, activeDeviceId, refreshDevices };
+  const suggestAudioOnly = failCountRef.current >= MAX_CAMERA_RETRIES_BEFORE_AUDIO;
+
+  return {
+    videoRef,
+    isActive,
+    mediaPipeLoaded,
+    cameraReady,
+    cameraError,
+    cameraErrorName,
+    startCamera,
+    devices,
+    activeDeviceId,
+    refreshDevices,
+    // debug / calibration / audio-only
+    ear,
+    landmarks,
+    blinkEvents,
+    threshold,
+    setThreshold,
+    audioOnly,
+    setAudioOnly,
+    manualBlink: handleBlink,
+    retryCount,
+    suggestAudioOnly,
+  };
 }
-
