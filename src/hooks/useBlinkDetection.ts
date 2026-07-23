@@ -110,46 +110,84 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
   // Camera setup — auto-start, and expose startCamera() for user-gesture fallback
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraErrorName, setCameraErrorName] = useState<string | null>(null);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
+  const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
 
-  const startCamera = useCallback(async () => {
-    if (streamRef.current) return true;
+  const refreshDevices = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: "user" },
-      });
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      const list = await navigator.mediaDevices.enumerateDevices();
+      setDevices(list.filter((d) => d.kind === "videoinput"));
+    } catch {}
+  }, []);
+
+  const startCamera = useCallback(async (deviceId?: string) => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw Object.assign(new Error("getUserMedia not supported"), { name: "NotSupportedError" });
+      }
+      if (typeof window !== "undefined" && !window.isSecureContext && location.hostname !== "localhost") {
+        throw Object.assign(new Error("Insecure context"), { name: "SecurityError" });
+      }
+      const constraints: MediaStreamConstraints = {
+        video: deviceId
+          ? { deviceId: { exact: deviceId }, width: 640, height: 480 }
+          : { width: 640, height: 480, facingMode: "user" },
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => {});
       }
+      const track = stream.getVideoTracks()[0];
+      setActiveDeviceId((track?.getSettings() as any)?.deviceId || deviceId || null);
       setCameraReady(true);
       setIsActive(true);
       setCameraError(null);
+      setCameraErrorName(null);
+      refreshDevices();
       return true;
     } catch (err: any) {
       const name = err?.name || "Error";
+      setCameraErrorName(name);
       setCameraError(
-        name === "NotAllowedError"
-          ? "Camera permission denied. Click Enable Camera and allow access."
-          : name === "NotFoundError"
+        name === "NotAllowedError" || name === "PermissionDeniedError"
+          ? "Camera permission denied. Click Retry and allow access."
+          : name === "NotFoundError" || name === "DevicesNotFoundError"
           ? "No camera found on this device."
-          : name === "NotReadableError"
+          : name === "NotReadableError" || name === "TrackStartError"
           ? "Camera is in use by another app."
+          : name === "OverconstrainedError"
+          ? "Selected camera doesn't support required settings."
+          : name === "SecurityError"
+          ? "Insecure context — camera requires HTTPS."
+          : name === "NotSupportedError"
+          ? "This browser does not support camera access."
           : `Camera error: ${name}`
       );
       setIsActive(false);
       return false;
     }
-  }, []);
+  }, [refreshDevices]);
 
   useEffect(() => {
     if (!enabled) return;
     startCamera();
+    refreshDevices();
+    const handler = () => refreshDevices();
+    navigator.mediaDevices?.addEventListener?.("devicechange", handler);
     return () => {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
+      navigator.mediaDevices?.removeEventListener?.("devicechange", handler);
     };
-  }, [enabled, startCamera]);
+  }, [enabled, startCamera, refreshDevices]);
 
   // MediaPipe FaceMesh setup
   useEffect(() => {
