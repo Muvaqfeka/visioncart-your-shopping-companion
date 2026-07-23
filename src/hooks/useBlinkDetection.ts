@@ -251,6 +251,6 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     };
   }, [cameraReady, enabled, handleBlink]);
 
-  return { videoRef, isActive, mediaPipeLoaded, cameraReady, cameraError, startCamera };
+  return { videoRef, isActive, mediaPipeLoaded, cameraReady, cameraError, cameraErrorName, startCamera, devices, activeDeviceId, refreshDevices };
 }
 
