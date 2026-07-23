@@ -372,6 +372,37 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const suggestAudioOnly = failCountRef.current >= MAX_CAMERA_RETRIES_BEFORE_AUDIO;
 
+  const getEarSamples = useCallback(() => earSamplesRef.current.slice(), []);
+
+  const downloadDiagnostics = useCallback(() => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      calibration: {
+        threshold,
+        smoothWindow: SMOOTH_WINDOW,
+        minClosedFrames: MIN_CLOSED_FRAMES,
+        minOpenFrames: MIN_OPEN_FRAMES,
+        minBlinkGapMs: MIN_BLINK_GAP,
+        doubleBlinkWindowMs: DOUBLE_BLINK_WINDOW,
+        postActionCooldownMs: POST_ACTION_COOLDOWN,
+      },
+      camera: { activeDeviceId, devices: devices.map((d) => ({ label: d.label, deviceId: d.deviceId })) },
+      currentEar: ear,
+      blinkEvents,
+      earSamples: earSamplesRef.current,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `svc-diagnostics-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [threshold, activeDeviceId, devices, ear, blinkEvents]);
+
   return {
     videoRef,
     isActive,
@@ -393,6 +424,8 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     setAudioOnly,
     manualBlink: handleBlink,
     retryCount,
+    getEarSamples,
+    downloadDiagnostics,
     suggestAudioOnly,
   };
 }
