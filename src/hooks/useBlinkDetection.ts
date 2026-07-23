@@ -145,9 +145,12 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const handleBlink = useCallback(() => {
     const st = blinkStateRef.current;
+    const now = Date.now();
+    // Debounce: ignore raw blinks that fire too close to previous one
+    if (now - st.lastRawBlinkAt < MIN_BLINK_GAP) return;
+    st.lastRawBlinkAt = now;
     pushEvent("raw");
     if (isBusy()) return;
-    const now = Date.now();
     st.blinkTimes.push(now);
     st.blinkTimes = st.blinkTimes.filter((t) => now - t < DOUBLE_BLINK_WINDOW + 200);
 
