@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, ExternalLink, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Camera, ExternalLink, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mic } from "lucide-react";
 
 interface Props {
   cameraError: string | null;
@@ -9,6 +9,8 @@ interface Props {
   activeDeviceId: string | null;
   onRetry: (deviceId?: string) => Promise<boolean>;
   onRefreshDevices: () => void;
+  suggestAudioOnly?: boolean;
+  onEnableAudioOnly?: () => void;
 }
 
 function isInIframe() {
@@ -27,6 +29,8 @@ export default function CameraTroubleshoot({
   activeDeviceId,
   onRetry,
   onRefreshDevices,
+  suggestAudioOnly,
+  onEnableAudioOnly,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [retrying, setRetrying] = useState(false);
@@ -79,6 +83,21 @@ export default function CameraTroubleshoot({
             className="glass px-3 py-1.5 rounded-md text-xs font-display text-primary shadow-neon inline-flex items-center gap-1.5"
           >
             <ExternalLink className="w-3.5 h-3.5" /> Open in new tab
+          </button>
+        </div>
+      )}
+
+      {suggestAudioOnly && onEnableAudioOnly && (
+        <div className="rounded-lg border border-accent/40 bg-accent/5 p-3">
+          <p className="text-xs text-foreground mb-1 font-display">Camera keeps failing?</p>
+          <p className="text-[11px] text-muted-foreground mb-2">
+            Switch to audio-only mode. You can still browse, add to cart, and checkout using voice commands and on-screen buttons — no blink required.
+          </p>
+          <button
+            onClick={onEnableAudioOnly}
+            className="glass px-3 py-1.5 rounded-md text-xs font-display text-accent shadow-neon inline-flex items-center gap-1.5"
+          >
+            <Mic className="w-3.5 h-3.5" /> Continue in audio-only mode
           </button>
         </div>
       )}
