@@ -8,6 +8,7 @@ import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/ho
 import { categories, findCategoryByVoice } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import CameraTroubleshoot from "@/components/CameraTroubleshoot";
 
 export default function Index() {
   const navigate = useNavigate();
