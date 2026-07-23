@@ -118,7 +118,7 @@ export default function Index() {
     speak(msg);
   };
 
-  const { videoRef, isActive, mediaPipeLoaded, cameraError, startCamera } = useBlinkDetection({
+  const { videoRef, isActive, mediaPipeLoaded, cameraError, cameraErrorName, startCamera, devices, activeDeviceId, refreshDevices } = useBlinkDetection({
     onSingleBlink: handleSingleBlink,
     onDoubleBlink: handleDoubleBlink,
   });
