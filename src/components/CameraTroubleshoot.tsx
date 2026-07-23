@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, ExternalLink, RefreshCw, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Camera, ExternalLink, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Mic } from "lucide-react";
 
 interface Props {
   cameraError: string | null;
@@ -9,6 +9,8 @@ interface Props {
   activeDeviceId: string | null;
   onRetry: (deviceId?: string) => Promise<boolean>;
   onRefreshDevices: () => void;
+  suggestAudioOnly?: boolean;
+  onEnableAudioOnly?: () => void;
 }
 
 function isInIframe() {
@@ -27,6 +29,8 @@ export default function CameraTroubleshoot({
   activeDeviceId,
   onRetry,
   onRefreshDevices,
+  suggestAudioOnly,
+  onEnableAudioOnly,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [retrying, setRetrying] = useState(false);
