@@ -324,18 +324,31 @@ export default function Index() {
 
           {/* Calibration & Debug toggles */}
           {!audioOnly && isActive && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 justify-center">
               <button
                 onClick={() => setShowCalibration(true)}
                 className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-primary inline-flex items-center gap-1.5"
               >
-                <Sliders className="w-3.5 h-3.5" /> Calibrate blink
+                <Sliders className="w-3.5 h-3.5" /> Calibrate
+              </button>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-accent inline-flex items-center gap-1.5"
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Blink test
               </button>
               <button
                 onClick={() => setShowDebug((v) => !v)}
                 className={`glass px-3 py-1.5 rounded-lg text-[11px] font-display inline-flex items-center gap-1.5 ${showDebug ? "text-accent" : "text-muted-foreground"}`}
               >
                 <Activity className="w-3.5 h-3.5" /> {showDebug ? "Hide" : "Show"} debug
+              </button>
+              <button
+                onClick={downloadDiagnostics}
+                className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-muted-foreground inline-flex items-center gap-1.5"
+                title="Export calibration, EAR samples, and blink logs as JSON"
+              >
+                <Download className="w-3.5 h-3.5" /> Diagnostics
               </button>
             </div>
           )}
