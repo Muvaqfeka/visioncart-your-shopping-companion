@@ -118,10 +118,17 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const blinkStateRef = useRef({
     wasClosed: false,
+    closedFrames: 0,
+    openFrames: 0,
+    lastRawBlinkAt: 0,
     blinkTimes: [] as number[],
     pendingTimer: null as ReturnType<typeof setTimeout> | null,
     cooldownUntil: 0,
   });
+
+  // Rolling EAR window (smoothing) and sample buffer (diagnostics)
+  const earWindowRef = useRef<number[]>([]);
+  const earSamplesRef = useRef<Array<{ t: number; ear: number; smoothed: number; closed: boolean }>>([]);
 
   const isBusy = () => {
     const st = blinkStateRef.current;
