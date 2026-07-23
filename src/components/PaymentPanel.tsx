@@ -326,6 +326,18 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
             </Button>
             <Button variant="outline" onClick={() => { setMethod(null); setTxnId(""); setDesktopUpi(null); }}>Back</Button>
           </div>
+          {isLocal && (
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                speak(language === "ta" ? "டெமோ பணம் உறுதி." : "Demo payment confirmed.");
+                onSubmitted(method!, "paid");
+              }}
+            >
+              {language === "ta" ? "டெமோவாக செலுத்தியதாக குறி" : "Mark as paid (Demo)"}
+            </Button>
+          )}
         </div>
       )}
 

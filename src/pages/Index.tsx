@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles, Sliders, Activity } from "lucide-react";
+import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles, Sliders, Activity, Download, Wand2 } from "lucide-react";
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
@@ -11,6 +11,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import CameraTroubleshoot from "@/components/CameraTroubleshoot";
 import BlinkCalibration from "@/components/BlinkCalibration";
 import BlinkDebugOverlay from "@/components/BlinkDebugOverlay";
+import BlinkTestWizard from "@/components/BlinkTestWizard";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -126,6 +127,7 @@ export default function Index() {
     devices, activeDeviceId, refreshDevices,
     ear, landmarks, blinkEvents, threshold, setThreshold,
     audioOnly, setAudioOnly, manualBlink, suggestAudioOnly,
+    getEarSamples, downloadDiagnostics,
   } = useBlinkDetection({
     onSingleBlink: handleSingleBlink,
     onDoubleBlink: handleDoubleBlink,
@@ -133,6 +135,19 @@ export default function Index() {
 
   const [showCalibration, setShowCalibration] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+
+  // Auto-start listening once audio-only mode turns on (with a small delay for TTS)
+  const audioOnlyPrev = useRef(audioOnly);
+  useEffect(() => {
+    if (audioOnly && !audioOnlyPrev.current) {
+      const timer = setTimeout(() => {
+        handleSingleBlink();
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+    audioOnlyPrev.current = audioOnly;
+  }, [audioOnly]);
 
   useEffect(() => {
     if (welcomed.current) return;
@@ -309,18 +324,31 @@ export default function Index() {
 
           {/* Calibration & Debug toggles */}
           {!audioOnly && isActive && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 justify-center">
               <button
                 onClick={() => setShowCalibration(true)}
                 className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-primary inline-flex items-center gap-1.5"
               >
-                <Sliders className="w-3.5 h-3.5" /> Calibrate blink
+                <Sliders className="w-3.5 h-3.5" /> Calibrate
+              </button>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-accent inline-flex items-center gap-1.5"
+              >
+                <Wand2 className="w-3.5 h-3.5" /> Blink test
               </button>
               <button
                 onClick={() => setShowDebug((v) => !v)}
                 className={`glass px-3 py-1.5 rounded-lg text-[11px] font-display inline-flex items-center gap-1.5 ${showDebug ? "text-accent" : "text-muted-foreground"}`}
               >
                 <Activity className="w-3.5 h-3.5" /> {showDebug ? "Hide" : "Show"} debug
+              </button>
+              <button
+                onClick={downloadDiagnostics}
+                className="glass px-3 py-1.5 rounded-lg text-[11px] font-display text-muted-foreground inline-flex items-center gap-1.5"
+                title="Export calibration, EAR samples, and blink logs as JSON"
+              >
+                <Download className="w-3.5 h-3.5" /> Diagnostics
               </button>
             </div>
           )}
@@ -436,6 +464,16 @@ export default function Index() {
         setThreshold={setThreshold}
         videoRef={videoRef}
         landmarks={landmarks}
+      />
+
+      <BlinkTestWizard
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        ear={ear}
+        threshold={threshold}
+        setThreshold={setThreshold}
+        getEarSamples={getEarSamples}
+        blinkEvents={blinkEvents}
       />
     </div>
   );

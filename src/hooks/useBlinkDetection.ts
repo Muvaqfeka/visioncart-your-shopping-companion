@@ -7,6 +7,11 @@ const DEFAULT_THRESHOLD = 0.23;
 const DOUBLE_BLINK_WINDOW = 900;
 const POST_ACTION_COOLDOWN = 1400;
 const MAX_CAMERA_RETRIES_BEFORE_AUDIO = 2;
+const SMOOTH_WINDOW = 3;           // frames averaged for EAR smoothing
+const MIN_CLOSED_FRAMES = 2;       // consecutive frames below thr to count as closed
+const MIN_OPEN_FRAMES = 2;         // consecutive frames above thr to count as re-opened
+const MIN_BLINK_GAP = 220;         // ms — ignore any blink within this window of last raw blink
+const EAR_SAMPLE_LIMIT = 600;      // ring buffer of recent EAR samples
 
 const LS_DEVICE = "svc.cameraDeviceId";
 const LS_THRESHOLD = "svc.blinkThreshold";
@@ -113,10 +118,17 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const blinkStateRef = useRef({
     wasClosed: false,
+    closedFrames: 0,
+    openFrames: 0,
+    lastRawBlinkAt: 0,
     blinkTimes: [] as number[],
     pendingTimer: null as ReturnType<typeof setTimeout> | null,
     cooldownUntil: 0,
   });
+
+  // Rolling EAR window (smoothing) and sample buffer (diagnostics)
+  const earWindowRef = useRef<number[]>([]);
+  const earSamplesRef = useRef<Array<{ t: number; ear: number; smoothed: number; closed: boolean }>>([]);
 
   const isBusy = () => {
     const st = blinkStateRef.current;
@@ -133,9 +145,12 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const handleBlink = useCallback(() => {
     const st = blinkStateRef.current;
+    const now = Date.now();
+    // Debounce: ignore raw blinks that fire too close to previous one
+    if (now - st.lastRawBlinkAt < MIN_BLINK_GAP) return;
+    st.lastRawBlinkAt = now;
     pushEvent("raw");
     if (isBusy()) return;
-    const now = Date.now();
     st.blinkTimes.push(now);
     st.blinkTimes = st.blinkTimes.filter((t) => now - t < DOUBLE_BLINK_WINDOW + 200);
 
@@ -298,18 +313,41 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
             return;
           }
           const lm = results.multiFaceLandmarks[0] as Point[];
-          const eyeEar = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
-          setEar(eyeEar);
+          const rawEar = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
+
+          // Smoothing: mean over last SMOOTH_WINDOW samples
+          const win = earWindowRef.current;
+          win.push(rawEar);
+          if (win.length > SMOOTH_WINDOW) win.shift();
+          const smoothed = win.reduce((a, b) => a + b, 0) / win.length;
+
+          setEar(smoothed);
           setLandmarks(EYE_LANDMARK_IDS.map((i) => ({ x: lm[i].x, y: lm[i].y })));
+
           const st = blinkStateRef.current;
           const thr = thresholdRef.current;
+          const now = Date.now();
 
-          if (eyeEar < thr && !st.wasClosed) {
-            st.wasClosed = true;
-          } else if (eyeEar >= thr && st.wasClosed) {
-            st.wasClosed = false;
-            handleBlink();
+          // Consecutive-frame gating to reject single-frame noise
+          if (smoothed < thr) {
+            st.closedFrames += 1;
+            st.openFrames = 0;
+            if (!st.wasClosed && st.closedFrames >= MIN_CLOSED_FRAMES) {
+              st.wasClosed = true;
+            }
+          } else {
+            st.openFrames += 1;
+            st.closedFrames = 0;
+            if (st.wasClosed && st.openFrames >= MIN_OPEN_FRAMES) {
+              st.wasClosed = false;
+              handleBlink();
+            }
           }
+
+          // Ring buffer sample log
+          const buf = earSamplesRef.current;
+          buf.push({ t: now, ear: rawEar, smoothed, closed: st.wasClosed });
+          if (buf.length > EAR_SAMPLE_LIMIT) buf.shift();
         });
 
         camera = new Camera(videoRef.current, {
@@ -334,6 +372,37 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
 
   const suggestAudioOnly = failCountRef.current >= MAX_CAMERA_RETRIES_BEFORE_AUDIO;
 
+  const getEarSamples = useCallback(() => earSamplesRef.current.slice(), []);
+
+  const downloadDiagnostics = useCallback(() => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      calibration: {
+        threshold,
+        smoothWindow: SMOOTH_WINDOW,
+        minClosedFrames: MIN_CLOSED_FRAMES,
+        minOpenFrames: MIN_OPEN_FRAMES,
+        minBlinkGapMs: MIN_BLINK_GAP,
+        doubleBlinkWindowMs: DOUBLE_BLINK_WINDOW,
+        postActionCooldownMs: POST_ACTION_COOLDOWN,
+      },
+      camera: { activeDeviceId, devices: devices.map((d) => ({ label: d.label, deviceId: d.deviceId })) },
+      currentEar: ear,
+      blinkEvents,
+      earSamples: earSamplesRef.current,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `svc-diagnostics-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, [threshold, activeDeviceId, devices, ear, blinkEvents]);
+
   return {
     videoRef,
     isActive,
@@ -355,6 +424,8 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
     setAudioOnly,
     manualBlink: handleBlink,
     retryCount,
+    getEarSamples,
+    downloadDiagnostics,
     suggestAudioOnly,
   };
 }
