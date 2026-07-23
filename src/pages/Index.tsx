@@ -465,6 +465,16 @@ export default function Index() {
         videoRef={videoRef}
         landmarks={landmarks}
       />
+
+      <BlinkTestWizard
+        open={showWizard}
+        onClose={() => setShowWizard(false)}
+        ear={ear}
+        threshold={threshold}
+        setThreshold={setThreshold}
+        getEarSamples={getEarSamples}
+        blinkEvents={blinkEvents}
+      />
     </div>
   );
 }
