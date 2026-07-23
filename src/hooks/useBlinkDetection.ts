@@ -313,18 +313,41 @@ export function useBlinkDetection({ onSingleBlink, onDoubleBlink, enabled = true
             return;
           }
           const lm = results.multiFaceLandmarks[0] as Point[];
-          const eyeEar = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
-          setEar(eyeEar);
+          const rawEar = (calcEAR(lm, LEFT_EYE) + calcEAR(lm, RIGHT_EYE)) / 2;
+
+          // Smoothing: mean over last SMOOTH_WINDOW samples
+          const win = earWindowRef.current;
+          win.push(rawEar);
+          if (win.length > SMOOTH_WINDOW) win.shift();
+          const smoothed = win.reduce((a, b) => a + b, 0) / win.length;
+
+          setEar(smoothed);
           setLandmarks(EYE_LANDMARK_IDS.map((i) => ({ x: lm[i].x, y: lm[i].y })));
+
           const st = blinkStateRef.current;
           const thr = thresholdRef.current;
+          const now = Date.now();
 
-          if (eyeEar < thr && !st.wasClosed) {
-            st.wasClosed = true;
-          } else if (eyeEar >= thr && st.wasClosed) {
-            st.wasClosed = false;
-            handleBlink();
+          // Consecutive-frame gating to reject single-frame noise
+          if (smoothed < thr) {
+            st.closedFrames += 1;
+            st.openFrames = 0;
+            if (!st.wasClosed && st.closedFrames >= MIN_CLOSED_FRAMES) {
+              st.wasClosed = true;
+            }
+          } else {
+            st.openFrames += 1;
+            st.closedFrames = 0;
+            if (st.wasClosed && st.openFrames >= MIN_OPEN_FRAMES) {
+              st.wasClosed = false;
+              handleBlink();
+            }
           }
+
+          // Ring buffer sample log
+          const buf = earSamplesRef.current;
+          buf.push({ t: now, ear: rawEar, smoothed, closed: st.wasClosed });
+          if (buf.length > EAR_SAMPLE_LIMIT) buf.shift();
         });
 
         camera = new Camera(videoRef.current, {
