@@ -7,6 +7,11 @@ const DEFAULT_THRESHOLD = 0.23;
 const DOUBLE_BLINK_WINDOW = 900;
 const POST_ACTION_COOLDOWN = 1400;
 const MAX_CAMERA_RETRIES_BEFORE_AUDIO = 2;
+const SMOOTH_WINDOW = 3;           // frames averaged for EAR smoothing
+const MIN_CLOSED_FRAMES = 2;       // consecutive frames below thr to count as closed
+const MIN_OPEN_FRAMES = 2;         // consecutive frames above thr to count as re-opened
+const MIN_BLINK_GAP = 220;         // ms — ignore any blink within this window of last raw blink
+const EAR_SAMPLE_LIMIT = 600;      // ring buffer of recent EAR samples
 
 const LS_DEVICE = "svc.cameraDeviceId";
 const LS_THRESHOLD = "svc.blinkThreshold";
