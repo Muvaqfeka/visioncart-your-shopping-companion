@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles } from "lucide-react";
+import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles, Sliders, Activity } from "lucide-react";
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
@@ -9,6 +9,8 @@ import { categories, findCategoryByVoice } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import CameraTroubleshoot from "@/components/CameraTroubleshoot";
+import BlinkCalibration from "@/components/BlinkCalibration";
+import BlinkDebugOverlay from "@/components/BlinkDebugOverlay";
 
 export default function Index() {
   const navigate = useNavigate();
@@ -119,10 +121,18 @@ export default function Index() {
     speak(msg);
   };
 
-  const { videoRef, isActive, mediaPipeLoaded, cameraError, cameraErrorName, startCamera, devices, activeDeviceId, refreshDevices } = useBlinkDetection({
+  const {
+    videoRef, isActive, mediaPipeLoaded, cameraError, cameraErrorName, startCamera,
+    devices, activeDeviceId, refreshDevices,
+    ear, landmarks, blinkEvents, threshold, setThreshold,
+    audioOnly, setAudioOnly, manualBlink, suggestAudioOnly,
+  } = useBlinkDetection({
     onSingleBlink: handleSingleBlink,
     onDoubleBlink: handleDoubleBlink,
   });
+
+  const [showCalibration, setShowCalibration] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     if (welcomed.current) return;
