@@ -5,7 +5,7 @@ import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles, Sliders, Acti
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
-import { categories, findCategoryByVoice } from "@/data/products";
+import { categories, findCategoryByVoice, findProductByVoice, getProductsByCategory } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import CameraTroubleshoot from "@/components/CameraTroubleshoot";
