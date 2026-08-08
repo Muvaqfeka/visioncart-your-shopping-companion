@@ -90,7 +90,28 @@
     background-clip: text;
     color: transparent;
   }
+  /* Quick-commerce surfaces: bright, rounded, high contrast */
+  .quick-card {
+    background: linear-gradient(160deg, hsl(var(--card)), hsl(260 45% 9%));
+    border: 1px solid hsl(var(--quick) / 0.28);
+    border-radius: 1.25rem;
+    box-shadow: 0 8px 30px -12px hsl(260 60% 2% / 0.9), inset 0 1px 0 hsl(var(--quick) / 0.12);
+  }
+  .quick-strip {
+    background: linear-gradient(100deg, hsl(var(--quick) / 0.18), hsl(var(--fresh) / 0.14));
+    border: 1px solid hsl(var(--quick) / 0.32);
+  }
+  .quick-pill {
+    background: hsl(var(--fresh) / 0.16);
+    color: hsl(var(--fresh));
+    border: 1px solid hsl(var(--fresh) / 0.35);
+  }
+  .quick-badge {
+    background: hsl(var(--quick));
+    color: hsl(var(--quick-foreground));
+  }
 }
+
 
 @layer utilities {
   @keyframes neon-pulse {
