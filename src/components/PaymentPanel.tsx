@@ -1,14 +1,17 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2, XCircle, Volume2 } from "lucide-react";
+import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2, XCircle, Volume2, CreditCard, PlusCircle, Fingerprint } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useWallet } from "@/context/WalletContext";
 import { speak } from "@/hooks/useSpeech";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import BiometricPrompt from "@/components/BiometricPrompt";
 import { toast } from "sonner";
 
-export type PaymentMethod = "gpay" | "phonepe" | "cod" | "offline";
+export type PaymentMethod = "gpay" | "phonepe" | "paytm" | "card" | "cod" | "offline";
+
 
 interface PaymentPanelProps {
   orderId: string;
@@ -40,9 +43,17 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, orderId: string) {
+type UpiApp = "gpay" | "phonepe" | "paytm";
+
+const UPI_APPS: Record<UpiApp, { pkg: string; scheme: string; label: string; labelTa: string }> = {
+  gpay: { pkg: "com.google.android.apps.nbu.paisa.user", scheme: "gpay://upi/pay", label: "Google Pay", labelTa: "கூகுள் பே" },
+  phonepe: { pkg: "com.phonepe.app", scheme: "phonepe://pay", label: "PhonePe", labelTa: "போன் பே" },
+  paytm: { pkg: "net.one97.paytm", scheme: "paytmmp://pay", label: "Paytm", labelTa: "பேடிஎம்" },
+};
+
+function launchUpiApp(app: UpiApp, amount: number, payee: string, orderId: string) {
   const query = buildUpiQuery(amount, payee, orderId);
-  const pkg = app === "gpay" ? "com.google.android.apps.nbu.paisa.user" : "com.phonepe.app";
+  const { pkg, scheme } = UPI_APPS[app];
 
   // Android: targeted intent URL opens the specific app directly
   if (isAndroid()) {
@@ -57,8 +68,7 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
 
   // iOS / other mobile: try app-specific scheme, then generic upi://
   if (isMobile()) {
-    const scheme = app === "gpay" ? `gpay://upi/pay?${query}` : `phonepe://pay?${query}`;
-    window.location.href = scheme;
+    window.location.href = `${scheme}?${query}`;
     setTimeout(() => { window.location.href = `upi://pay?${query}`; }, 1500);
     return true;
   }
@@ -68,10 +78,14 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
   return false;
 }
 
+
 export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
+  const wallet = useWallet();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [pendingMethod, setPendingMethod] = useState<PaymentMethod | null>(null);
+  const [biometricFor, setBiometricFor] = useState<PaymentMethod | null>(null);
+  const [rechargeAmount, setRechargeAmount] = useState("500");
   const [txnId, setTxnId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
@@ -88,9 +102,11 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
 
   const methodLabel = (m: PaymentMethod) => {
     if (language === "ta") {
-      return m === "gpay" ? "கூகுள் பே" : m === "phonepe" ? "போன் பே" : m === "cod" ? "பணம் கையில் (COD)" : "ஆஃப்லைன் பணம்";
+      return m === "gpay" ? "கூகுள் பே" : m === "phonepe" ? "போன் பே" : m === "paytm" ? "பேடிஎம்"
+        : m === "card" ? "விஷன் கார்டு" : m === "cod" ? "பணம் கையில் (COD)" : "ஆஃப்லைன் பணம்";
     }
-    return m === "gpay" ? "Google Pay" : m === "phonepe" ? "PhonePe" : m === "cod" ? "Cash on Delivery" : "Offline cash payment";
+    return m === "gpay" ? "Google Pay" : m === "phonepe" ? "PhonePe" : m === "paytm" ? "Paytm"
+      : m === "card" ? "Vision Card wallet" : m === "cod" ? "Cash on Delivery" : "Offline cash payment";
   };
 
   const requestConfirm = (m: PaymentMethod) => {
@@ -106,17 +122,60 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
     const m = pendingMethod;
     setPendingMethod(null);
     if (!m) return;
-    if (m === "gpay" || m === "phonepe") openUpi(m);
-    else if (m === "cod") chooseCod();
+    // UPI apps and the Vision Card require a fingerprint before the money moves
+    if (m === "gpay" || m === "phonepe" || m === "paytm" || m === "card") {
+      setBiometricFor(m);
+      return;
+    }
+    if (m === "cod") chooseCod();
     else if (m === "offline") startRecording();
   };
 
+  const afterBiometric = (m: PaymentMethod) => {
+    setBiometricFor(null);
+    if (m === "card") payWithCard();
+    else openUpi(m as UpiApp);
+  };
 
-  const openUpi = (m: "gpay" | "phonepe") => {
-    setMethod(m);
-    const appName = m === "gpay" ? "Google Pay" : "PhonePe";
+  const payWithCard = async () => {
+    setMethod("card");
+    if (wallet.balance < amount) {
+      speak(language === "ta"
+        ? `கார்டில் ₹${wallet.balance.toLocaleString("en-IN")} மட்டுமே உள்ளது. ரீசார்ஜ் செய்யுங்கள்.`
+        : `Your card has only ₹${wallet.balance.toLocaleString("en-IN")}. Please recharge to continue.`);
+      toast.error("Insufficient card balance — recharge to continue");
+      return;
+    }
+    wallet.pay(amount, `Order ${orderId.slice(0, 8)}`);
+    setSubmitting(true);
+    if (!isLocal) {
+      const { error } = await supabase.from("orders").update({
+        payment_method: "card", payment_status: "paid",
+      }).eq("id", orderId);
+      if (error) { setSubmitting(false); return toast.error(error.message); }
+    }
+    setSubmitting(false);
+    await speak(language === "ta"
+      ? `விஷன் கார்டில் ₹${amount.toLocaleString("en-IN")} செலுத்தப்பட்டது. மீதி ₹${(wallet.balance - amount).toLocaleString("en-IN")}.`
+      : `Paid ₹${amount.toLocaleString("en-IN")} with your Vision Card. Remaining balance ₹${(wallet.balance - amount).toLocaleString("en-IN")}.`);
+    onSubmitted("card", "paid");
+  };
+
+  const doRecharge = () => {
+    const amt = Number(rechargeAmount);
+    if (!amt || amt <= 0) return toast.error("Enter a recharge amount");
+    wallet.recharge(amt);
     speak(language === "ta"
-      ? `${m === "gpay" ? "கூகுள் பே" : "போன் பே"} ஐ திறக்கிறது. பணம் செலுத்திய பின் பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+      ? `₹${amt.toLocaleString("en-IN")} ரீசார்ஜ் ஆனது. புதிய இருப்பு ₹${(wallet.balance + amt).toLocaleString("en-IN")}.`
+      : `Recharged ₹${amt.toLocaleString("en-IN")}. New balance ₹${(wallet.balance + amt).toLocaleString("en-IN")}.`);
+    toast.success(`Card recharged with ₹${amt.toLocaleString("en-IN")}`);
+  };
+
+  const openUpi = (m: UpiApp) => {
+    setMethod(m);
+    const appName = UPI_APPS[m].label;
+    speak(language === "ta"
+      ? `${UPI_APPS[m].labelTa} ஐ திறக்கிறது. பணம் செலுத்திய பின் பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
       : `Opening ${appName}. After paying, enter the transaction ID to confirm your order.`);
     const launched = launchUpiApp(m, amount, payeeName, orderId);
     if (!launched) {
@@ -125,6 +184,7 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       toast.info("Open this UPI link on your phone to pay");
     }
   };
+
 
 
   const submitUpi = async () => {
@@ -217,26 +277,80 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       <h3 className="font-display text-sm text-primary text-glow text-center">{t("choosePayment")}</h3>
       <p className="text-xs text-muted-foreground text-center">₹{amount.toLocaleString("en-IN")} {t("total")}</p>
 
-      {!method && !pendingMethod && (
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => requestConfirm("gpay")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
-            <Smartphone className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payGpay")}</span>
-          </button>
-          <button onClick={() => requestConfirm("phonepe")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
-            <Wallet className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payPhonepe")}</span>
-          </button>
-          <button onClick={() => requestConfirm("cod")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
-            <CircleDollarSign className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payCash")}</span>
-          </button>
-          <button onClick={() => requestConfirm("offline")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all border border-primary/40">
-            <Video className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payOffline")}</span>
-          </button>
-        </div>
+      {biometricFor && (
+        <BiometricPrompt
+          title={methodLabel(biometricFor)}
+          amount={amount}
+          onSuccess={() => afterBiometric(biometricFor)}
+          onCancel={() => { setBiometricFor(null); speak(language === "ta" ? "ரத்து செய்யப்பட்டது." : "Cancelled."); }}
+        />
       )}
+
+      {!method && !pendingMethod && !biometricFor && (
+        <>
+          {/* Vision Card wallet */}
+          <div className="quick-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-display uppercase tracking-wider text-quick flex items-center gap-1">
+                <CreditCard className="w-3.5 h-3.5" /> {language === "ta" ? "விஷன் கார்டு" : "Vision Card"}
+              </span>
+              <span className="text-[11px] text-muted-foreground">{wallet.cardNumber}</span>
+            </div>
+            <p className="text-2xl font-display gradient-text">₹{wallet.balance.toLocaleString("en-IN")}</p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => requestConfirm("card")} disabled={wallet.balance < amount} className="flex-1">
+                <Fingerprint className="w-4 h-4 mr-1" />
+                {language === "ta" ? "கார்டில் செலுத்து" : "Pay with card"}
+              </Button>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Input
+                value={rechargeAmount}
+                onChange={(e) => setRechargeAmount(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+                aria-label={language === "ta" ? "ரீசார்ஜ் தொகை" : "Recharge amount"}
+                className="h-9"
+              />
+              <Button size="sm" variant="secondary" onClick={doRecharge}>
+                <PlusCircle className="w-4 h-4 mr-1" />
+                {language === "ta" ? "ரீசார்ஜ்" : "Recharge"}
+              </Button>
+            </div>
+            {wallet.balance < amount && (
+              <p className="text-[11px] text-destructive">
+                {language === "ta" ? "இருப்பு போதவில்லை — ரீசார்ஜ் செய்யுங்கள்." : "Insufficient balance — recharge to pay with the card."}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => requestConfirm("gpay")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <Smartphone className="w-6 h-6 text-quick" />
+              <span className="text-xs font-display text-foreground">{t("payGpay")}</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {language === "ta" ? "கைரேகை" : "Fingerprint"}</span>
+            </button>
+            <button onClick={() => requestConfirm("phonepe")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <Wallet className="w-6 h-6 text-quick" />
+              <span className="text-xs font-display text-foreground">{t("payPhonepe")}</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {language === "ta" ? "கைரேகை" : "Fingerprint"}</span>
+            </button>
+            <button onClick={() => requestConfirm("paytm")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <Smartphone className="w-6 h-6 text-fresh" />
+              <span className="text-xs font-display text-foreground">Paytm</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {language === "ta" ? "கைரேகை" : "Fingerprint"}</span>
+            </button>
+            <button onClick={() => requestConfirm("cod")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <CircleDollarSign className="w-6 h-6 text-fresh" />
+              <span className="text-xs font-display text-foreground">{t("payCash")}</span>
+            </button>
+            <button onClick={() => requestConfirm("offline")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform col-span-2">
+              <Video className="w-6 h-6 text-primary" />
+              <span className="text-xs font-display text-foreground">{t("payOffline")}</span>
+            </button>
+          </div>
+        </>
+      )}
+
 
       {pendingMethod && (
         <motion.div
@@ -299,20 +413,21 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       )}
 
 
-      {(method === "gpay" || method === "phonepe") && (
-        <div className="glass rounded-xl p-4 space-y-3">
+      {(method === "gpay" || method === "phonepe" || method === "paytm") && (
+        <div className="quick-card p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {language === "ta"
-              ? `${method === "gpay" ? "கூகுள் பே" : "போன் பே"} திறக்கப்பட்டது. பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
-              : `${method === "gpay" ? "Google Pay" : "PhonePe"} should have opened. After paying, paste the UPI transaction ID below to confirm your order.`}
+              ? `${UPI_APPS[method].labelTa} திறக்கப்பட்டது. பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+              : `${UPI_APPS[method].label} should have opened. After paying, paste the UPI transaction ID below to confirm your order.`}
           </p>
           <Button
             variant="secondary"
-            onClick={() => launchUpiApp(method as "gpay" | "phonepe", amount, payeeName, orderId)}
+            onClick={() => launchUpiApp(method as UpiApp, amount, payeeName, orderId)}
             className="w-full"
           >
-            <Smartphone className="w-4 h-4 mr-1" /> Re-open {method === "gpay" ? "Google Pay" : "PhonePe"}
+            <Smartphone className="w-4 h-4 mr-1" /> Re-open {UPI_APPS[method].label}
           </Button>
+
           {desktopUpi && (
             <p className="text-[11px] text-muted-foreground break-all">
               Desktop? Open this on your phone: <span className="text-primary">{desktopUpi}</span>

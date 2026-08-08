@@ -8,7 +8,15 @@ export interface Product {
   available: boolean;
   emoji: string;
   image: string;
+  /** Pack size / unit, e.g. "500 ml", "1 kg" */
+  unit?: string;
+  /** Units left in stock */
+  stock?: number;
+  /** Tamil name, used for voice search + readout */
+  tamilName?: string;
 }
+
+
 
 export interface Category {
   id: string;
@@ -19,7 +27,9 @@ export interface Category {
 }
 
 export const categories: Category[] = [
+  { id: "essentials", name: "Daily Essentials", emoji: "🛒", description: "Milk, bread, eggs & basics", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&q=80" },
   { id: "electronics", name: "Electronics", emoji: "🎧", description: "Smart devices & gadgets", image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80" },
+
   { id: "groceries", name: "Groceries", emoji: "🥑", description: "Fresh food & essentials", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80" },
   { id: "personal-care", name: "Personal Care", emoji: "🧴", description: "Health & beauty products", image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80" },
   { id: "medicines", name: "Medicines", emoji: "💊", description: "Health & wellness medicines", image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80" },
@@ -77,11 +87,69 @@ export const products: Product[] = [
   { id: "h4", name: "Steel Water Bottle 1L", brand: "Milton", price: 349, category: "home", features: ["1 Litre", "Insulated", "Leak Proof", "BPA Free"], available: true, emoji: "🧴", image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80" },
   { id: "h5", name: "LED Table Lamp", brand: "Philips", price: 599, category: "home", features: ["3-Step Dimming", "Eye-Care LED", "USB Powered", "Foldable Arm"], available: true, emoji: "🪔", image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400&q=80" },
   { id: "h6", name: "Microfibre Cleaning Cloth Pack", brand: "Scotch-Brite", price: 199, category: "home", features: ["Pack of 6", "Lint-Free", "Reusable", "Multi-Surface"], available: true, emoji: "🧽", image: "https://images.unsplash.com/photo-1583947581924-860bda6a26df?w=400&q=80" },
+
+  // Daily Essentials (basic needs)
+  { id: "d1", name: "Toned Milk", brand: "Aavin", price: 28, category: "essentials", unit: "500 ml pouch", stock: 42, tamilName: "பால்", features: ["Fresh Daily", "Toned 3% Fat", "Pasteurised", "500 ml"], available: true, emoji: "🥛", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&q=80" },
+  { id: "d2", name: "Whole Wheat Bread", brand: "Britannia", price: 45, category: "essentials", unit: "400 g loaf", stock: 25, tamilName: "ரொட்டி", features: ["100% Atta", "No Maida", "Soft Slices", "400 g"], available: true, emoji: "🍞", image: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80" },
+  { id: "d3", name: "Farm Fresh Eggs", brand: "Suguna", price: 84, category: "essentials", unit: "Pack of 12", stock: 30, tamilName: "முட்டை", features: ["12 Eggs", "High Protein", "Farm Fresh", "Grade A"], available: true, emoji: "🥚", image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400&q=80" },
+  { id: "d4", name: "Fresh Curd", brand: "Aavin", price: 30, category: "essentials", unit: "400 g cup", stock: 18, tamilName: "தயிர்", features: ["Thick Set", "Probiotic", "No Preservatives", "400 g"], available: true, emoji: "🥣", image: "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80" },
+  { id: "d5", name: "Sugar", brand: "Madhur", price: 52, category: "essentials", unit: "1 kg", stock: 60, tamilName: "சர்க்கரை", features: ["Refined", "Sulphur Free", "1 Kg", "Sparkling White"], available: true, emoji: "🍬", image: "https://images.unsplash.com/photo-1581441363689-1f3c3c414635?w=400&q=80" },
+  { id: "d6", name: "Iodised Salt", brand: "Tata", price: 28, category: "essentials", unit: "1 kg", stock: 55, tamilName: "உப்பு", features: ["Iodised", "Free Flow", "1 Kg", "Vacuum Evaporated"], available: true, emoji: "🧂", image: "https://images.unsplash.com/photo-1518110925495-b37e912cf2d3?w=400&q=80" },
+  { id: "d7", name: "Whole Wheat Atta", brand: "Aashirvaad", price: 245, category: "essentials", unit: "5 kg", stock: 22, tamilName: "கோதுமை மாவு", features: ["100% Whole Wheat", "Chakki Fresh", "5 Kg", "High Fibre"], available: true, emoji: "🌾", image: "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?w=400&q=80" },
+  { id: "d8", name: "Onion", brand: "Local Farm", price: 38, category: "essentials", unit: "1 kg", stock: 70, tamilName: "வெங்காயம்", features: ["Fresh", "Hand Picked", "1 Kg", "Medium Size"], available: true, emoji: "🧅", image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80" },
+  { id: "d9", name: "Tomato", brand: "Local Farm", price: 32, category: "essentials", unit: "1 kg", stock: 48, tamilName: "தக்காளி", features: ["Farm Fresh", "Firm & Ripe", "1 Kg", "Naturally Grown"], available: true, emoji: "🍅", image: "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=400&q=80" },
+  { id: "d10", name: "Potato", brand: "Local Farm", price: 30, category: "essentials", unit: "1 kg", stock: 65, tamilName: "உருளைக்கிழங்கு", features: ["Fresh", "Washed", "1 Kg", "All Purpose"], available: true, emoji: "🥔", image: "https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400&q=80" },
+  { id: "d11", name: "Banana", brand: "Local Farm", price: 45, category: "essentials", unit: "1 dozen", stock: 36, tamilName: "வாழைப்பழம்", features: ["Naturally Ripened", "12 Pieces", "Rich in Potassium", "Fresh"], available: true, emoji: "🍌", image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=400&q=80" },
+  { id: "d12", name: "Tea Powder", brand: "Red Label", price: 135, category: "essentials", unit: "500 g", stock: 28, tamilName: "தேயிலை", features: ["Strong Blend", "Rich Aroma", "500 g", "Assam Leaves"], available: true, emoji: "🍵", image: "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400&q=80" },
+  { id: "d13", name: "Marie Biscuits", brand: "Sunfeast", price: 30, category: "essentials", unit: "250 g", stock: 44, tamilName: "பிஸ்கட்", features: ["Light & Crisp", "Tea Time", "250 g", "Wheat Based"], available: true, emoji: "🍪", image: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80" },
+  { id: "d14", name: "Sunflower Oil", brand: "Fortune", price: 155, category: "essentials", unit: "1 litre", stock: 33, tamilName: "எண்ணெய்", features: ["Refined", "Light & Healthy", "1 Litre", "Vitamin A & D"], available: true, emoji: "🫗", image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&q=80" },
+  { id: "d15", name: "Drinking Water Can", brand: "Bisleri", price: 70, category: "essentials", unit: "20 litre", stock: 15, tamilName: "தண்ணீர்", features: ["20 Litre", "Mineral Water", "Sealed Can", "Home Delivery"], available: true, emoji: "💧", image: "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=400&q=80" },
 ];
 
 export function getProductsByCategory(categoryId: string): Product[] {
   return products.filter((p) => p.category === categoryId);
 }
+
+export function getProductById(id: string): Product | undefined {
+  return products.find((p) => p.id === id);
+}
+
+/** Fuzzy voice search across product names, brands, Tamil names and categories. */
+export function findProductByVoice(input: string): Product | undefined {
+  const q = (input || "").toLowerCase().trim();
+  if (!q) return undefined;
+  const words = q.split(/\s+/).filter((w) => w.length > 2);
+
+  let best: { p: Product; score: number } | null = null;
+  for (const p of products) {
+    const name = p.name.toLowerCase();
+    let score = 0;
+    if (name === q || p.tamilName === input.trim()) score = 1;
+    else if (name.includes(q) || q.includes(name)) score = 0.95;
+    else if (p.tamilName && q.includes(p.tamilName)) score = 0.95;
+    else if (p.brand.toLowerCase().includes(q)) score = 0.7;
+    else {
+      const nameWords = name.split(/\s+/);
+      const hits = words.filter((w) => nameWords.some((nw) => nw.startsWith(w) || w.startsWith(nw))).length;
+      if (hits) score = hits / Math.max(words.length, 1) * 0.9;
+    }
+    if (!best || score > best.score) best = { p, score };
+  }
+  return best && best.score >= 0.45 ? best.p : undefined;
+}
+
+export function searchProducts(input: string): Product[] {
+  const q = (input || "").toLowerCase().trim();
+  if (!q) return [];
+  return products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.brand.toLowerCase().includes(q) ||
+      (p.tamilName || "").includes(input.trim()) ||
+      p.category.includes(q)
+  );
+}
+
 
 export function getCategoryById(categoryId: string): Category | undefined {
   return categories.find((c) => c.id === categoryId);
@@ -93,11 +161,13 @@ export function findCategoryByVoice(input: string): Category | undefined {
     (c) =>
       lower.includes(c.id) ||
       lower.includes(c.name.toLowerCase()) ||
+      (c.id === "essentials" && (lower.includes("அத்தியாவசிய") || lower.includes("daily") || lower.includes("basic") || lower.includes("essential"))) ||
       (c.id === "electronics" && (lower.includes("எலக்") || lower.includes("electronic"))) ||
       (c.id === "groceries" && (lower.includes("மளிகை") || lower.includes("grocer") || lower.includes("food"))) ||
       (c.id === "personal-care" && (lower.includes("அழகு") || lower.includes("personal") || lower.includes("beauty"))) ||
       (c.id === "medicines" && (lower.includes("மருந்து") || lower.includes("medicine") || lower.includes("medical") || lower.includes("pharma"))) ||
       (c.id === "clothing" && (lower.includes("ஆடை") || lower.includes("clothing") || lower.includes("clothes") || lower.includes("dress") || lower.includes("apparel"))) ||
-      (c.id === "home" && (lower.includes("வீடு") || lower.includes("home") || lower.includes("kitchen") || lower.includes("essential")))
+      (c.id === "home" && (lower.includes("வீடு") || lower.includes("home") || lower.includes("kitchen")))
+
   );
 }

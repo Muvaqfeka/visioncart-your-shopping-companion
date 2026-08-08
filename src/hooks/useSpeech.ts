@@ -90,7 +90,14 @@ export const COMMAND_PHRASES = {
   readCart: ["read cart", "read my cart", "tell me my cart", "என் கார்ட் படி"],
   checkout: ["checkout", "pay", "pay now", "proceed to pay", "செக்அவுட்"],
   whereIsOrder: ["where is my order", "track order", "order status", "where is order", "என் ஆர்டர் எங்கே"],
+  searchProduct: [
+    "search product", "search", "search for product", "find product", "find a product",
+    "search item", "i want to search", "product search", "look for product",
+    "பொருள் தேடு", "தேடு", "பொருளை தேடு",
+  ],
+  recharge: ["recharge", "recharge card", "add money", "top up", "add balance", "ரீசார்ஜ்", "பணம் சேர்"],
 };
+
 
 interface ListenOpts {
   onResult: (text: string, confidence: number) => void;

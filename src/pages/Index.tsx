@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles, Sliders, Activity, Download, Wand2 } from "lucide-react";
+import { Mic, Eye, Camera, Volume2, Globe, ShoppingCart, Sparkles, Sliders, Activity, Download, Wand2, Search } from "lucide-react";
 import heroImage from "@/assets/hero-eye.jpg";
 import { useBlinkDetection } from "@/hooks/useBlinkDetection";
 import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/hooks/useSpeech";
-import { categories, findCategoryByVoice } from "@/data/products";
+import { categories, findCategoryByVoice, findProductByVoice, getProductsByCategory } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import CameraTroubleshoot from "@/components/CameraTroubleshoot";
@@ -23,7 +23,10 @@ export default function Index() {
   const [languageChosen, setLanguageChosen] = useState(false);
   const [showWelcomeCard, setShowWelcomeCard] = useState(true);
 
+  const [searchText, setSearchText] = useState("");
+
   const taName = (id: string) => ({
+    essentials: "அத்தியாவசிய பொருட்கள்",
     electronics: "எலக்ட்ரானிக்ஸ்",
     groceries: "மளிகை பொருட்கள்",
     "personal-care": "அழகு பொருட்கள்",
@@ -35,6 +38,40 @@ export default function Index() {
   const readAllCategories = () => {
     return categories.map((c) => (language === "ta" ? taName(c.id) : c.name)).join(", ");
   };
+
+  /** Resolve a spoken/typed product name and open its detail page. */
+  const runProductSearch = (term: string) => {
+    const found = findProductByVoice(term);
+    if (found) {
+      setStatus(`${language === "ta" ? "கண்டுபிடிக்கப்பட்டது" : "Found"}: ${found.name}`);
+      speak(
+        language === "ta"
+          ? `${found.tamilName || found.name} கண்டுபிடிக்கப்பட்டது. விவரங்களைத் திறக்கிறேன்.`
+          : `Found ${found.name}. Opening the product details.`
+      ).then(() => navigate(`/product/${found.id}`));
+      return true;
+    }
+    setStatus(`${language === "ta" ? "கிடைக்கவில்லை" : "No match"}: ${term}`);
+    speak(
+      language === "ta"
+        ? `மன்னிக்கவும், ${term} கிடைக்கவில்லை. பால், ரொட்டி, முட்டை போன்ற பொருளின் பெயரைச் சொல்லுங்கள்.`
+        : `Sorry, I could not find ${term}. Try a product name like milk, bread, or eggs.`
+    );
+    return false;
+  };
+
+  /** Voice search: ask for a product name, then open it. */
+  const promptProductSearch = () => {
+    setStatus("🎤 " + (language === "ta" ? "பொருளின் பெயரைச் சொல்லுங்கள்" : "Say the product name"));
+    speak(
+      language === "ta"
+        ? "எந்தப் பொருளைத் தேட வேண்டும்? உதாரணமாக பால், ரொட்டி, முட்டை என்று சொல்லுங்கள்."
+        : "Which product are you looking for? For example, say milk, bread, or eggs."
+    ).then(() => {
+      startListening({ retries: 2, onResult: (text) => runProductSearch(text) });
+    });
+  };
+
 
   const handleLanguageChoice = (text: string) => {
     const isTamil = matchCommand(text, COMMAND_PHRASES.tamil, 0.5).matched;
@@ -56,8 +93,8 @@ export default function Index() {
 
   const helpSpeech = () => {
     const msg = language === "ta"
-      ? "கிடைக்கும் கட்டளைகள்: எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள் என்று வகை சொல்லுங்கள். கார்ட்டுக்கு செல், கார்ட் பார், கார்ட்டில் சேர், அடுத்தது, பொருளைப் படி, செக்அவுட், உதவி."
-      : "Available commands: Say a category like Electronics, Groceries, Personal Care, or Medicines. Say Go to Cart to open your cart, View Cart to hear it, Add to Cart to add a product, Next or Previous to browse, Read Product for details, Checkout to pay, or Help anytime.";
+      ? "கிடைக்கும் கட்டளைகள்: பொருள் தேடு என்று சொல்லி பால், ரொட்டி போன்ற பொருளைத் தேடலாம். வகை சொல்லலாம் — அத்தியாவசியம், எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள். கார்ட்டுக்கு செல், கார்ட் பார், கார்ட்டில் சேர், அடுத்தது, பொருளைப் படி, ரீசார்ஜ், செக்அவுட், உதவி."
+      : "Available commands: Say Search Product to find an item like milk or bread. Say a category like Daily Essentials, Electronics, Groceries, Personal Care, or Medicines. Say Go to Cart to open your cart, View Cart to hear it, Add to Cart to add a product, Next or Previous to browse, Read Product for details, Recharge for your wallet card, Checkout to pay, or Help anytime.";
     speak(msg);
   };
 
@@ -75,8 +112,8 @@ export default function Index() {
 
     setStatus("🎤 " + t("listening"));
     const prompt = language === "ta"
-      ? "கேட்கிறேன். வகையின் பெயரைச் சொல்லுங்கள் — எலக்ட்ரானிக்ஸ், மளிகை, அழகு, மருந்துகள். உதவிக்கு உதவி என்று சொல்லுங்கள்."
-      : "Listening. Say a category like Electronics, Groceries, Personal Care, or Medicines. Say Help for commands.";
+      ? "கேட்கிறேன். பொருள் தேடு என்று சொல்லுங்கள், அல்லது வகையின் பெயரைச் சொல்லுங்கள். உதவிக்கு உதவி என்று சொல்லுங்கள்."
+      : "Listening. Say Search Product to find an item, or say a category name. Say Help for commands.";
     speak(prompt).then(() => {
       startListening({
         retries: 2,
@@ -93,24 +130,36 @@ export default function Index() {
             speak(language === "ta" ? "கார்ட் பக்கத்திற்கு செல்கிறது." : "Opening your cart now.").then(() => navigate("/checkout"));
             return;
           }
+          // "Search product" — ask for the item name, then open the product page
+          if (matchCommand(text, COMMAND_PHRASES.searchProduct, 0.5).matched) {
+            promptProductSearch();
+            return;
+          }
 
           const cat = findCategoryByVoice(text);
           if (cat) {
-            const catName = language === "ta"
-              ? cat.id === "electronics" ? "எலக்ட்ரானிக்ஸ்" : cat.id === "groceries" ? "மளிகை பொருட்கள்" : cat.id === "personal-care" ? "அழகு பொருட்கள்" : "மருந்துகள்"
-              : cat.name;
+            const catName = language === "ta" ? taName(cat.id) : cat.name;
             setStatus(`${t("navigatingTo")} ${catName}...`);
             speak(`${language === "ta" ? "அருமை!" : "Great choice!"} ${t("navigatingTo")} ${catName}`).then(() => navigate(`/category/${cat.id}`));
-          } else {
-            // Low-confidence fallback — read what we heard so the user can retry
-            setStatus(`${language === "ta" ? "கேட்டது" : "Heard"}: "${text}"`);
-            speak(language === "ta"
-              ? `மன்னிக்கவும், "${text}" புரியவில்லை. மீண்டும் ஒரு வகையின் பெயரைச் சொல்லுங்கள், அல்லது உதவி என்று சொல்லுங்கள்.`
-              : `Sorry, I heard "${text}" but did not match a category. Please blink and try again, or say Help.`
-            );
+            return;
           }
+
+          // Maybe they named a product directly ("milk")
+          const product = findProductByVoice(text);
+          if (product) {
+            runProductSearch(text);
+            return;
+          }
+
+          // Low-confidence fallback — read what we heard so the user can retry
+          setStatus(`${language === "ta" ? "கேட்டது" : "Heard"}: "${text}"`);
+          speak(language === "ta"
+            ? `மன்னிக்கவும், "${text}" புரியவில்லை. வகை அல்லது பொருளின் பெயரைச் சொல்லுங்கள், அல்லது உதவி என்று சொல்லுங்கள்.`
+            : `Sorry, I heard "${text}" but did not match anything. Say a category or product name, or say Help.`
+          );
         },
       });
+
     });
   };
 
@@ -417,7 +466,60 @@ export default function Index() {
           )}
         </div>
 
+        {/* Quick search — voice or type */}
+        <section className="max-w-md mx-auto w-full">
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (searchText.trim()) runProductSearch(searchText.trim()); }}
+            className="quick-card p-2 flex items-center gap-2"
+          >
+            <Search className="w-4 h-4 text-quick ml-2 shrink-0" aria-hidden />
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder={language === "ta" ? "பால், ரொட்டி, முட்டை..." : "Search milk, bread, eggs..."}
+              aria-label={language === "ta" ? "பொருள் தேடல்" : "Search products"}
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none py-2"
+            />
+            <button
+              type="button"
+              onClick={promptProductSearch}
+              className="quick-badge rounded-full p-2"
+              aria-label={language === "ta" ? "குரல் மூலம் தேடு" : "Search by voice"}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          </form>
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            {language === "ta" ? 'மைக்கை அழுத்தி "பொருள் தேடு" என்று சொல்லுங்கள்' : 'Tap the mic and say "Search product"'}
+          </p>
+        </section>
+
+        {/* Daily essentials quick strip */}
+        <section>
+          <h2 className="font-display text-sm text-foreground mb-3 flex items-center gap-2">
+            <span className="quick-badge rounded-full px-2 py-0.5 text-[10px]">10 min</span>
+            {language === "ta" ? "அத்தியாவசிய பொருட்கள்" : "Daily essentials"}
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            {getProductsByCategory("essentials").slice(0, 10).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/product/${p.id}`)}
+                className="quick-card shrink-0 w-28 text-left overflow-hidden hover:scale-105 transition-transform"
+              >
+                <img src={p.image} alt={`${p.name} — ${p.brand}`} className="w-full h-20 object-cover" loading="lazy" />
+                <div className="p-2">
+                  <p className="text-[11px] font-display text-foreground leading-tight truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{p.unit}</p>
+                  <p className="text-xs font-display text-quick">₹{p.price.toLocaleString("en-IN")}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Category Cards */}
+
         <section>
           <h2 className="font-display text-lg text-muted-foreground mb-4 text-center">
             {t("browseCategories")}
