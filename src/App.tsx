@@ -5,14 +5,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { WalletProvider } from "@/context/WalletContext";
 import { useState, useEffect } from "react";
 import SplashScreen from "@/components/SplashScreen";
 import Index from "./pages/Index";
 import Category from "./pages/Category";
+import Product from "./pages/Product";
 import Checkout from "./pages/Checkout";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+
 
 
 const queryClient = new QueryClient();
