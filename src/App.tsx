@@ -33,25 +33,28 @@ const App = () => {
       <TooltipProvider>
         <LanguageProvider>
           <CartProvider>
-            <Toaster />
-            <Sonner />
-            <SplashScreen visible={showSplash} />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/category/:categoryId" element={<Category />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-
-            </BrowserRouter>
+            <WalletProvider>
+              <Toaster />
+              <Sonner />
+              <SplashScreen visible={showSplash} />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/category/:categoryId" element={<Category />} />
+                  <Route path="/product/:productId" element={<Product />} />
+                  <Route path="/checkout" element={<Checkout />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </WalletProvider>
           </CartProvider>
         </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
 };
+
 
 export default App;
