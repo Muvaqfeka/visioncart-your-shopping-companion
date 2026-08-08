@@ -1,14 +1,17 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2, XCircle, Volume2 } from "lucide-react";
+import { Video, StopCircle, CheckCircle2, Smartphone, Wallet, CircleDollarSign, Upload, Loader2, XCircle, Volume2, CreditCard, PlusCircle, Fingerprint } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useWallet } from "@/context/WalletContext";
 import { speak } from "@/hooks/useSpeech";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import BiometricPrompt from "@/components/BiometricPrompt";
 import { toast } from "sonner";
 
-export type PaymentMethod = "gpay" | "phonepe" | "cod" | "offline";
+export type PaymentMethod = "gpay" | "phonepe" | "paytm" | "card" | "cod" | "offline";
+
 
 interface PaymentPanelProps {
   orderId: string;
