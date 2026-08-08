@@ -8,7 +8,15 @@ export interface Product {
   available: boolean;
   emoji: string;
   image: string;
+  /** Pack size / unit, e.g. "500 ml", "1 kg" */
+  unit?: string;
+  /** Units left in stock */
+  stock?: number;
+  /** Tamil name, used for voice search + readout */
+  tamilName?: string;
 }
+
+
 
 export interface Category {
   id: string;
