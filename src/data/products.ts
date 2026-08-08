@@ -27,7 +27,9 @@ export interface Category {
 }
 
 export const categories: Category[] = [
+  { id: "essentials", name: "Daily Essentials", emoji: "🛒", description: "Milk, bread, eggs & basics", image: "https://images.unsplash.com/photo-1550583724-b2692b85b150?w=600&q=80" },
   { id: "electronics", name: "Electronics", emoji: "🎧", description: "Smart devices & gadgets", image: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80" },
+
   { id: "groceries", name: "Groceries", emoji: "🥑", description: "Fresh food & essentials", image: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&q=80" },
   { id: "personal-care", name: "Personal Care", emoji: "🧴", description: "Health & beauty products", image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=600&q=80" },
   { id: "medicines", name: "Medicines", emoji: "💊", description: "Health & wellness medicines", image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=600&q=80" },
