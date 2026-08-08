@@ -161,11 +161,13 @@ export function findCategoryByVoice(input: string): Category | undefined {
     (c) =>
       lower.includes(c.id) ||
       lower.includes(c.name.toLowerCase()) ||
+      (c.id === "essentials" && (lower.includes("அத்தியாவசிய") || lower.includes("daily") || lower.includes("basic") || lower.includes("essential"))) ||
       (c.id === "electronics" && (lower.includes("எலக்") || lower.includes("electronic"))) ||
       (c.id === "groceries" && (lower.includes("மளிகை") || lower.includes("grocer") || lower.includes("food"))) ||
       (c.id === "personal-care" && (lower.includes("அழகு") || lower.includes("personal") || lower.includes("beauty"))) ||
       (c.id === "medicines" && (lower.includes("மருந்து") || lower.includes("medicine") || lower.includes("medical") || lower.includes("pharma"))) ||
       (c.id === "clothing" && (lower.includes("ஆடை") || lower.includes("clothing") || lower.includes("clothes") || lower.includes("dress") || lower.includes("apparel"))) ||
-      (c.id === "home" && (lower.includes("வீடு") || lower.includes("home") || lower.includes("kitchen") || lower.includes("essential")))
+      (c.id === "home" && (lower.includes("வீடு") || lower.includes("home") || lower.includes("kitchen")))
+
   );
 }
