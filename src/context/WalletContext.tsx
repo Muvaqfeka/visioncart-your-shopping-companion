@@ -49,7 +49,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (!amount || amount <= 0) return;
     setState((s) => ({
       balance: s.balance + amount,
-      txns: [{ id: crypto.randomUUID(), type: "recharge", amount, note: "Card recharge", at: Date.now() }, ...s.txns].slice(0, 30),
+      txns: [{ id: crypto.randomUUID(), type: "recharge" as const, amount, note: "Card recharge", at: Date.now() }, ...s.txns].slice(0, 30),
     }));
   }, []);
 
