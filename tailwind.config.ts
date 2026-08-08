@@ -28,6 +28,10 @@ export default {
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+        highlight: "hsl(var(--highlight))",
+        quick: { DEFAULT: "hsl(var(--quick))", foreground: "hsl(var(--quick-foreground))" },
+        fresh: { DEFAULT: "hsl(var(--fresh))", foreground: "hsl(var(--fresh-foreground))" },
+
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
