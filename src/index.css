@@ -20,6 +20,12 @@
     --accent: 180 100% 60%;
     --accent-foreground: 260 55% 6%;
     --highlight: 45 100% 60%;
+    /* Quick-commerce accents (Zepto/Blinkit inspired) */
+    --quick: 45 100% 60%;
+    --quick-foreground: 260 55% 8%;
+    --fresh: 142 72% 50%;
+    --fresh-foreground: 260 55% 6%;
+
     --destructive: 350 90% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 280 40% 24%;
