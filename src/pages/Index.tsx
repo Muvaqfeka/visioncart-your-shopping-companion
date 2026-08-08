@@ -466,7 +466,60 @@ export default function Index() {
           )}
         </div>
 
+        {/* Quick search — voice or type */}
+        <section className="max-w-md mx-auto w-full">
+          <form
+            onSubmit={(e) => { e.preventDefault(); if (searchText.trim()) runProductSearch(searchText.trim()); }}
+            className="quick-card p-2 flex items-center gap-2"
+          >
+            <Search className="w-4 h-4 text-quick ml-2 shrink-0" aria-hidden />
+            <input
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              placeholder={language === "ta" ? "பால், ரொட்டி, முட்டை..." : "Search milk, bread, eggs..."}
+              aria-label={language === "ta" ? "பொருள் தேடல்" : "Search products"}
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none py-2"
+            />
+            <button
+              type="button"
+              onClick={promptProductSearch}
+              className="quick-badge rounded-full p-2"
+              aria-label={language === "ta" ? "குரல் மூலம் தேடு" : "Search by voice"}
+            >
+              <Mic className="w-4 h-4" />
+            </button>
+          </form>
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            {language === "ta" ? 'மைக்கை அழுத்தி "பொருள் தேடு" என்று சொல்லுங்கள்' : 'Tap the mic and say "Search product"'}
+          </p>
+        </section>
+
+        {/* Daily essentials quick strip */}
+        <section>
+          <h2 className="font-display text-sm text-foreground mb-3 flex items-center gap-2">
+            <span className="quick-badge rounded-full px-2 py-0.5 text-[10px]">10 min</span>
+            {language === "ta" ? "அத்தியாவசிய பொருட்கள்" : "Daily essentials"}
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            {getProductsByCategory("essentials").slice(0, 10).map((p) => (
+              <button
+                key={p.id}
+                onClick={() => navigate(`/product/${p.id}`)}
+                className="quick-card shrink-0 w-28 text-left overflow-hidden hover:scale-105 transition-transform"
+              >
+                <img src={p.image} alt={`${p.name} — ${p.brand}`} className="w-full h-20 object-cover" loading="lazy" />
+                <div className="p-2">
+                  <p className="text-[11px] font-display text-foreground leading-tight truncate">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground truncate">{p.unit}</p>
+                  <p className="text-xs font-display text-quick">₹{p.price.toLocaleString("en-IN")}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+
         {/* Category Cards */}
+
         <section>
           <h2 className="font-display text-lg text-muted-foreground mb-4 text-center">
             {t("browseCategories")}
