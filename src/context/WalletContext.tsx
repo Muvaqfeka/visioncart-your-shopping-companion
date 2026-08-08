@@ -60,7 +60,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       ok = true;
       return {
         balance: s.balance - amount,
-        txns: [{ id: crypto.randomUUID(), type: "payment", amount, note, at: Date.now() }, ...s.txns].slice(0, 30),
+        txns: [{ id: crypto.randomUUID(), type: "payment" as const, amount, note, at: Date.now() }, ...s.txns].slice(0, 30),
       };
     });
     // read synchronously from the latest snapshot to return a reliable result
