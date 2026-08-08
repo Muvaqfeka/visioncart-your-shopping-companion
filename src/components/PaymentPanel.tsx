@@ -81,8 +81,11 @@ function launchUpiApp(app: UpiApp, amount: number, payee: string, orderId: strin
 
 export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
+  const wallet = useWallet();
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [pendingMethod, setPendingMethod] = useState<PaymentMethod | null>(null);
+  const [biometricFor, setBiometricFor] = useState<PaymentMethod | null>(null);
+  const [rechargeAmount, setRechargeAmount] = useState("500");
   const [txnId, setTxnId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
@@ -99,9 +102,11 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
 
   const methodLabel = (m: PaymentMethod) => {
     if (language === "ta") {
-      return m === "gpay" ? "கூகுள் பே" : m === "phonepe" ? "போன் பே" : m === "cod" ? "பணம் கையில் (COD)" : "ஆஃப்லைன் பணம்";
+      return m === "gpay" ? "கூகுள் பே" : m === "phonepe" ? "போன் பே" : m === "paytm" ? "பேடிஎம்"
+        : m === "card" ? "விஷன் கார்டு" : m === "cod" ? "பணம் கையில் (COD)" : "ஆஃப்லைன் பணம்";
     }
-    return m === "gpay" ? "Google Pay" : m === "phonepe" ? "PhonePe" : m === "cod" ? "Cash on Delivery" : "Offline cash payment";
+    return m === "gpay" ? "Google Pay" : m === "phonepe" ? "PhonePe" : m === "paytm" ? "Paytm"
+      : m === "card" ? "Vision Card wallet" : m === "cod" ? "Cash on Delivery" : "Offline cash payment";
   };
 
   const requestConfirm = (m: PaymentMethod) => {
@@ -117,17 +122,60 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
     const m = pendingMethod;
     setPendingMethod(null);
     if (!m) return;
-    if (m === "gpay" || m === "phonepe") openUpi(m);
-    else if (m === "cod") chooseCod();
+    // UPI apps and the Vision Card require a fingerprint before the money moves
+    if (m === "gpay" || m === "phonepe" || m === "paytm" || m === "card") {
+      setBiometricFor(m);
+      return;
+    }
+    if (m === "cod") chooseCod();
     else if (m === "offline") startRecording();
   };
 
+  const afterBiometric = (m: PaymentMethod) => {
+    setBiometricFor(null);
+    if (m === "card") payWithCard();
+    else openUpi(m as UpiApp);
+  };
 
-  const openUpi = (m: "gpay" | "phonepe") => {
-    setMethod(m);
-    const appName = m === "gpay" ? "Google Pay" : "PhonePe";
+  const payWithCard = async () => {
+    setMethod("card");
+    if (wallet.balance < amount) {
+      speak(language === "ta"
+        ? `கார்டில் ₹${wallet.balance.toLocaleString("en-IN")} மட்டுமே உள்ளது. ரீசார்ஜ் செய்யுங்கள்.`
+        : `Your card has only ₹${wallet.balance.toLocaleString("en-IN")}. Please recharge to continue.`);
+      toast.error("Insufficient card balance — recharge to continue");
+      return;
+    }
+    wallet.pay(amount, `Order ${orderId.slice(0, 8)}`);
+    setSubmitting(true);
+    if (!isLocal) {
+      const { error } = await supabase.from("orders").update({
+        payment_method: "card", payment_status: "paid",
+      }).eq("id", orderId);
+      if (error) { setSubmitting(false); return toast.error(error.message); }
+    }
+    setSubmitting(false);
+    await speak(language === "ta"
+      ? `விஷன் கார்டில் ₹${amount.toLocaleString("en-IN")} செலுத்தப்பட்டது. மீதி ₹${(wallet.balance - amount).toLocaleString("en-IN")}.`
+      : `Paid ₹${amount.toLocaleString("en-IN")} with your Vision Card. Remaining balance ₹${(wallet.balance - amount).toLocaleString("en-IN")}.`);
+    onSubmitted("card", "paid");
+  };
+
+  const doRecharge = () => {
+    const amt = Number(rechargeAmount);
+    if (!amt || amt <= 0) return toast.error("Enter a recharge amount");
+    wallet.recharge(amt);
     speak(language === "ta"
-      ? `${m === "gpay" ? "கூகுள் பே" : "போன் பே"} ஐ திறக்கிறது. பணம் செலுத்திய பின் பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+      ? `₹${amt.toLocaleString("en-IN")} ரீசார்ஜ் ஆனது. புதிய இருப்பு ₹${(wallet.balance + amt).toLocaleString("en-IN")}.`
+      : `Recharged ₹${amt.toLocaleString("en-IN")}. New balance ₹${(wallet.balance + amt).toLocaleString("en-IN")}.`);
+    toast.success(`Card recharged with ₹${amt.toLocaleString("en-IN")}`);
+  };
+
+  const openUpi = (m: UpiApp) => {
+    setMethod(m);
+    const appName = UPI_APPS[m].label;
+    speak(language === "ta"
+      ? `${UPI_APPS[m].labelTa} ஐ திறக்கிறது. பணம் செலுத்திய பின் பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
       : `Opening ${appName}. After paying, enter the transaction ID to confirm your order.`);
     const launched = launchUpiApp(m, amount, payeeName, orderId);
     if (!launched) {
@@ -136,6 +184,7 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       toast.info("Open this UPI link on your phone to pay");
     }
   };
+
 
 
   const submitUpi = async () => {
