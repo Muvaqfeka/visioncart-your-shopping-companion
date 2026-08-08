@@ -413,20 +413,21 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       )}
 
 
-      {(method === "gpay" || method === "phonepe") && (
-        <div className="glass rounded-xl p-4 space-y-3">
+      {(method === "gpay" || method === "phonepe" || method === "paytm") && (
+        <div className="quick-card p-4 space-y-3">
           <p className="text-xs text-muted-foreground">
             {language === "ta"
-              ? `${method === "gpay" ? "கூகுள் பே" : "போன் பே"} திறக்கப்பட்டது. பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
-              : `${method === "gpay" ? "Google Pay" : "PhonePe"} should have opened. After paying, paste the UPI transaction ID below to confirm your order.`}
+              ? `${UPI_APPS[method].labelTa} திறக்கப்பட்டது. பணம் செலுத்திய பிறகு, பரிவர்த்தனை ஐடி ஐ உள்ளிடுங்கள்.`
+              : `${UPI_APPS[method].label} should have opened. After paying, paste the UPI transaction ID below to confirm your order.`}
           </p>
           <Button
             variant="secondary"
-            onClick={() => launchUpiApp(method as "gpay" | "phonepe", amount, payeeName, orderId)}
+            onClick={() => launchUpiApp(method as UpiApp, amount, payeeName, orderId)}
             className="w-full"
           >
-            <Smartphone className="w-4 h-4 mr-1" /> Re-open {method === "gpay" ? "Google Pay" : "PhonePe"}
+            <Smartphone className="w-4 h-4 mr-1" /> Re-open {UPI_APPS[method].label}
           </Button>
+
           {desktopUpi && (
             <p className="text-[11px] text-muted-foreground break-all">
               Desktop? Open this on your phone: <span className="text-primary">{desktopUpi}</span>
