@@ -23,7 +23,10 @@ export default function Index() {
   const [languageChosen, setLanguageChosen] = useState(false);
   const [showWelcomeCard, setShowWelcomeCard] = useState(true);
 
+  const [searchText, setSearchText] = useState("");
+
   const taName = (id: string) => ({
+    essentials: "அத்தியாவசிய பொருட்கள்",
     electronics: "எலக்ட்ரானிக்ஸ்",
     groceries: "மளிகை பொருட்கள்",
     "personal-care": "அழகு பொருட்கள்",
@@ -35,6 +38,40 @@ export default function Index() {
   const readAllCategories = () => {
     return categories.map((c) => (language === "ta" ? taName(c.id) : c.name)).join(", ");
   };
+
+  /** Resolve a spoken/typed product name and open its detail page. */
+  const runProductSearch = (term: string) => {
+    const found = findProductByVoice(term);
+    if (found) {
+      setStatus(`${language === "ta" ? "கண்டுபிடிக்கப்பட்டது" : "Found"}: ${found.name}`);
+      speak(
+        language === "ta"
+          ? `${found.tamilName || found.name} கண்டுபிடிக்கப்பட்டது. விவரங்களைத் திறக்கிறேன்.`
+          : `Found ${found.name}. Opening the product details.`
+      ).then(() => navigate(`/product/${found.id}`));
+      return true;
+    }
+    setStatus(`${language === "ta" ? "கிடைக்கவில்லை" : "No match"}: ${term}`);
+    speak(
+      language === "ta"
+        ? `மன்னிக்கவும், ${term} கிடைக்கவில்லை. பால், ரொட்டி, முட்டை போன்ற பொருளின் பெயரைச் சொல்லுங்கள்.`
+        : `Sorry, I could not find ${term}. Try a product name like milk, bread, or eggs.`
+    );
+    return false;
+  };
+
+  /** Voice search: ask for a product name, then open it. */
+  const promptProductSearch = () => {
+    setStatus("🎤 " + (language === "ta" ? "பொருளின் பெயரைச் சொல்லுங்கள்" : "Say the product name"));
+    speak(
+      language === "ta"
+        ? "எந்தப் பொருளைத் தேட வேண்டும்? உதாரணமாக பால், ரொட்டி, முட்டை என்று சொல்லுங்கள்."
+        : "Which product are you looking for? For example, say milk, bread, or eggs."
+    ).then(() => {
+      startListening({ retries: 2, onResult: (text) => runProductSearch(text) });
+    });
+  };
+
 
   const handleLanguageChoice = (text: string) => {
     const isTamil = matchCommand(text, COMMAND_PHRASES.tamil, 0.5).matched;
