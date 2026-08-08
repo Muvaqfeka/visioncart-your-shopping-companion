@@ -277,26 +277,80 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
       <h3 className="font-display text-sm text-primary text-glow text-center">{t("choosePayment")}</h3>
       <p className="text-xs text-muted-foreground text-center">₹{amount.toLocaleString("en-IN")} {t("total")}</p>
 
-      {!method && !pendingMethod && (
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => requestConfirm("gpay")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
-            <Smartphone className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payGpay")}</span>
-          </button>
-          <button onClick={() => requestConfirm("phonepe")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
-            <Wallet className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payPhonepe")}</span>
-          </button>
-          <button onClick={() => requestConfirm("cod")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all">
-            <CircleDollarSign className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payCash")}</span>
-          </button>
-          <button onClick={() => requestConfirm("offline")} className="glass rounded-xl p-4 flex flex-col items-center gap-2 hover:shadow-neon-lg transition-all border border-primary/40">
-            <Video className="w-6 h-6 text-primary" />
-            <span className="text-xs font-display text-foreground">{t("payOffline")}</span>
-          </button>
-        </div>
+      {biometricFor && (
+        <BiometricPrompt
+          title={methodLabel(biometricFor)}
+          amount={amount}
+          onSuccess={() => afterBiometric(biometricFor)}
+          onCancel={() => { setBiometricFor(null); speak(language === "ta" ? "ரத்து செய்யப்பட்டது." : "Cancelled."); }}
+        />
       )}
+
+      {!method && !pendingMethod && !biometricFor && (
+        <>
+          {/* Vision Card wallet */}
+          <div className="quick-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-display uppercase tracking-wider text-quick flex items-center gap-1">
+                <CreditCard className="w-3.5 h-3.5" /> {language === "ta" ? "விஷன் கார்டு" : "Vision Card"}
+              </span>
+              <span className="text-[11px] text-muted-foreground">{wallet.cardNumber}</span>
+            </div>
+            <p className="text-2xl font-display gradient-text">₹{wallet.balance.toLocaleString("en-IN")}</p>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => requestConfirm("card")} disabled={wallet.balance < amount} className="flex-1">
+                <Fingerprint className="w-4 h-4 mr-1" />
+                {language === "ta" ? "கார்டில் செலுத்து" : "Pay with card"}
+              </Button>
+            </div>
+            <div className="flex gap-2 items-center">
+              <Input
+                value={rechargeAmount}
+                onChange={(e) => setRechargeAmount(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+                aria-label={language === "ta" ? "ரீசார்ஜ் தொகை" : "Recharge amount"}
+                className="h-9"
+              />
+              <Button size="sm" variant="secondary" onClick={doRecharge}>
+                <PlusCircle className="w-4 h-4 mr-1" />
+                {language === "ta" ? "ரீசார்ஜ்" : "Recharge"}
+              </Button>
+            </div>
+            {wallet.balance < amount && (
+              <p className="text-[11px] text-destructive">
+                {language === "ta" ? "இருப்பு போதவில்லை — ரீசார்ஜ் செய்யுங்கள்." : "Insufficient balance — recharge to pay with the card."}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={() => requestConfirm("gpay")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <Smartphone className="w-6 h-6 text-quick" />
+              <span className="text-xs font-display text-foreground">{t("payGpay")}</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {language === "ta" ? "கைரேகை" : "Fingerprint"}</span>
+            </button>
+            <button onClick={() => requestConfirm("phonepe")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <Wallet className="w-6 h-6 text-quick" />
+              <span className="text-xs font-display text-foreground">{t("payPhonepe")}</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {language === "ta" ? "கைரேகை" : "Fingerprint"}</span>
+            </button>
+            <button onClick={() => requestConfirm("paytm")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <Smartphone className="w-6 h-6 text-fresh" />
+              <span className="text-xs font-display text-foreground">Paytm</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Fingerprint className="w-3 h-3" /> {language === "ta" ? "கைரேகை" : "Fingerprint"}</span>
+            </button>
+            <button onClick={() => requestConfirm("cod")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform">
+              <CircleDollarSign className="w-6 h-6 text-fresh" />
+              <span className="text-xs font-display text-foreground">{t("payCash")}</span>
+            </button>
+            <button onClick={() => requestConfirm("offline")} className="quick-card p-4 flex flex-col items-center gap-2 hover:scale-[1.02] transition-transform col-span-2">
+              <Video className="w-6 h-6 text-primary" />
+              <span className="text-xs font-display text-foreground">{t("payOffline")}</span>
+            </button>
+          </div>
+        </>
+      )}
+
 
       {pendingMethod && (
         <motion.div
