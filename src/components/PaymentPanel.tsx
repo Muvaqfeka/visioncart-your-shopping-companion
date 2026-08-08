@@ -43,9 +43,17 @@ function isMobile() {
   return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
-function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, orderId: string) {
+type UpiApp = "gpay" | "phonepe" | "paytm";
+
+const UPI_APPS: Record<UpiApp, { pkg: string; scheme: string; label: string; labelTa: string }> = {
+  gpay: { pkg: "com.google.android.apps.nbu.paisa.user", scheme: "gpay://upi/pay", label: "Google Pay", labelTa: "கூகுள் பே" },
+  phonepe: { pkg: "com.phonepe.app", scheme: "phonepe://pay", label: "PhonePe", labelTa: "போன் பே" },
+  paytm: { pkg: "net.one97.paytm", scheme: "paytmmp://pay", label: "Paytm", labelTa: "பேடிஎம்" },
+};
+
+function launchUpiApp(app: UpiApp, amount: number, payee: string, orderId: string) {
   const query = buildUpiQuery(amount, payee, orderId);
-  const pkg = app === "gpay" ? "com.google.android.apps.nbu.paisa.user" : "com.phonepe.app";
+  const { pkg, scheme } = UPI_APPS[app];
 
   // Android: targeted intent URL opens the specific app directly
   if (isAndroid()) {
@@ -60,8 +68,7 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
 
   // iOS / other mobile: try app-specific scheme, then generic upi://
   if (isMobile()) {
-    const scheme = app === "gpay" ? `gpay://upi/pay?${query}` : `phonepe://pay?${query}`;
-    window.location.href = scheme;
+    window.location.href = `${scheme}?${query}`;
     setTimeout(() => { window.location.href = `upi://pay?${query}`; }, 1500);
     return true;
   }
@@ -70,6 +77,7 @@ function launchUpiApp(app: "gpay" | "phonepe", amount: number, payee: string, or
   try { window.location.href = `upi://pay?${query}`; } catch {}
   return false;
 }
+
 
 export default function PaymentPanel({ orderId, userId, amount, payeeName = "Smart Vision Cart", isLocal = false, onSubmitted }: PaymentPanelProps) {
   const { language, t } = useLanguage();
