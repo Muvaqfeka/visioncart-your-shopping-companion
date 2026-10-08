@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { supabase } from '@/integrations/supabase/client';
+import { paymentRequest } from '@/lib/visionPayments';
 
-const STORAGE_KEY = "svc.wallet";
-const INITIAL_BALANCE = 1000;
+const INITIAL_BALANCE = 0;
 
 export interface WalletTxn {
   id: string;
@@ -18,60 +19,45 @@ interface WalletState {
 
 interface WalletContextType extends WalletState {
   cardNumber: string;
-  recharge: (amount: number) => void;
-  pay: (amount: number, note?: string) => boolean;
+  refresh: () => Promise<number>;
+  pay: (orderId: string, approvalId: string) => Promise<number>;
   reset: () => void;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
-function load(): WalletState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (typeof parsed?.balance === "number") {
-        return { balance: parsed.balance, txns: Array.isArray(parsed.txns) ? parsed.txns : [] };
-      }
-    }
-  } catch {}
-  return { balance: INITIAL_BALANCE, txns: [] };
-}
-
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<WalletState>(() => load());
-
-  useEffect(() => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
-  }, [state]);
-
-  const recharge = useCallback((amount: number) => {
-    if (!amount || amount <= 0) return;
-    setState((s) => ({
-      balance: s.balance + amount,
-      txns: [{ id: crypto.randomUUID(), type: "recharge" as const, amount, note: "Card recharge", at: Date.now() }, ...s.txns].slice(0, 30),
-    }));
+  const [state, setState] = useState<WalletState>({ balance: INITIAL_BALANCE, txns: [] });
+  const refresh = useCallback(async () => {
+    const data = await paymentRequest({ action: 'wallet' });
+    const balance = Number(data.balance);
+    setState({ balance, txns: [] });
+    return balance;
   }, []);
-
-  const pay = useCallback((amount: number, note = "Order payment") => {
-    let ok = false;
-    setState((s) => {
-      if (s.balance < amount) return s;
-      ok = true;
-      return {
-        balance: s.balance - amount,
-        txns: [{ id: crypto.randomUUID(), type: "payment" as const, amount, note, at: Date.now() }, ...s.txns].slice(0, 30),
-      };
-    });
-    // read synchronously from the latest snapshot to return a reliable result
-    return ok || state.balance >= amount;
-  }, [state.balance]);
+  useEffect(() => {
+    let active = true;
+    const sync = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!active) return;
+      if (!data.session || data.session.user.is_anonymous) { setState({ balance: 0, txns: [] }); return; }
+      refresh().catch(() => { if (active) setState({ balance: 0, txns: [] }); });
+    };
+    sync();
+    const { data } = supabase.auth.onAuthStateChange(() => { setTimeout(sync, 0); });
+    return () => { active = false; data.subscription.unsubscribe(); };
+  }, [refresh]);
+  const pay = useCallback(async (orderId: string, approvalId: string) => {
+    const data = await paymentRequest({ action: 'pay', order_id: orderId, approval_id: approvalId });
+    const balance = Number(data.balance);
+    setState({ balance, txns: [] });
+    return balance;
+  }, []);
 
   const reset = useCallback(() => setState({ balance: INITIAL_BALANCE, txns: [] }), []);
 
   return (
     <WalletContext.Provider
-      value={{ ...state, cardNumber: "5241 88•• •••• 1000", recharge, pay, reset }}
+      value={{ ...state, cardNumber: "VISION •••• 1000", refresh, pay, reset }}
     >
       {children}
     </WalletContext.Provider>
