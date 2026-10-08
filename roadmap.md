@@ -1,0 +1,5 @@
+- [ ] Refresh the shop to a bright quick-commerce design with a 10-minute delivery estimate.
+- [ ] Refresh stock on product visits and prevent unavailable/over-limit additions.
+- [ ] Implement server-verified UPI wallet recharge; block credits until verified.
+- [ ] Replace simulated fingerprint approval with secure alternate authentication.
+- [ ] Test shopping and payment blocking flows.
