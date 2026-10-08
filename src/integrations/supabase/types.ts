@@ -71,6 +71,30 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_approvals: {
+        Row: {
+          expires_at: string
+          id: string
+          order_id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string
+          id?: string
+          order_id: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          order_id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_inventory: {
         Row: {
           product_id: string
@@ -161,10 +185,16 @@ export type Database = {
         Args: { recharge_id: string }
         Returns: number
       }
-      debit_vision_wallet: {
-        Args: { owner_id: string; target_order: string }
-        Returns: number
-      }
+      debit_vision_wallet:
+        | { Args: { owner_id: string; target_order: string }; Returns: number }
+        | {
+            Args: {
+              approval_id: string
+              owner_id: string
+              target_order: string
+            }
+            Returns: number
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
