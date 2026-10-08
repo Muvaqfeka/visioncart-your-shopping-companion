@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -71,6 +71,24 @@ export type Database = {
         }
         Relationships: []
       }
+      product_inventory: {
+        Row: {
+          product_id: string
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          product_id: string
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          product_id?: string
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -92,11 +110,61 @@ export type Database = {
         }
         Relationships: []
       }
+      vision_wallets: {
+        Row: {
+          balance: number
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_recharges: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          provider_order_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          provider_order_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          provider_order_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      credit_verified_recharge: {
+        Args: { recharge_id: string }
+        Returns: number
+      }
+      debit_vision_wallet: {
+        Args: { owner_id: string; target_order: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
