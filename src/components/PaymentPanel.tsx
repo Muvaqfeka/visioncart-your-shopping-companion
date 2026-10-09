@@ -7,6 +7,7 @@ import { speak } from "@/hooks/useSpeech";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import WalletRecharge from "@/components/WalletRecharge";
 import BiometricPrompt from "@/components/BiometricPrompt";
 import { toast } from "sonner";
 
@@ -85,7 +86,6 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [pendingMethod, setPendingMethod] = useState<PaymentMethod | null>(null);
   const [biometricFor, setBiometricFor] = useState<PaymentMethod | null>(null);
-  const [rechargeAmount, setRechargeAmount] = useState("500");
   const [txnId, setTxnId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [desktopUpi, setDesktopUpi] = useState<string | null>(null);
@@ -131,44 +131,22 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
     else if (m === "offline") startRecording();
   };
 
-  const afterBiometric = (m: PaymentMethod) => {
+  const afterBiometric = (m: PaymentMethod, approvalId: string) => {
     setBiometricFor(null);
-    if (m === "card") payWithCard();
+    if (m === "card") payWithCard(approvalId);
     else openUpi(m as UpiApp);
   };
 
-  const payWithCard = async () => {
-    setMethod("card");
-    if (wallet.balance < amount) {
-      speak(language === "ta"
-        ? `கார்டில் ₹${wallet.balance.toLocaleString("en-IN")} மட்டுமே உள்ளது. ரீசார்ஜ் செய்யுங்கள்.`
-        : `Your card has only ₹${wallet.balance.toLocaleString("en-IN")}. Please recharge to continue.`);
-      toast.error("Insufficient card balance — recharge to continue");
-      return;
-    }
-    wallet.pay(amount, `Order ${orderId.slice(0, 8)}`);
+  const payWithCard = async (approvalId: string) => {
+    if (isLocal) { toast.error("Sign in and create a saved order to pay securely."); return; }
     setSubmitting(true);
-    if (!isLocal) {
-      const { error } = await supabase.from("orders").update({
-        payment_method: "card", payment_status: "paid",
-      }).eq("id", orderId);
-      if (error) { setSubmitting(false); return toast.error(error.message); }
-    }
-    setSubmitting(false);
-    await speak(language === "ta"
-      ? `விஷன் கார்டில் ₹${amount.toLocaleString("en-IN")} செலுத்தப்பட்டது. மீதி ₹${(wallet.balance - amount).toLocaleString("en-IN")}.`
-      : `Paid ₹${amount.toLocaleString("en-IN")} with your Vision Card. Remaining balance ₹${(wallet.balance - amount).toLocaleString("en-IN")}.`);
-    onSubmitted("card", "paid");
-  };
-
-  const doRecharge = () => {
-    const amt = Number(rechargeAmount);
-    if (!amt || amt <= 0) return toast.error("Enter a recharge amount");
-    wallet.recharge(amt);
-    speak(language === "ta"
-      ? `₹${amt.toLocaleString("en-IN")} ரீசார்ஜ் ஆனது. புதிய இருப்பு ₹${(wallet.balance + amt).toLocaleString("en-IN")}.`
-      : `Recharged ₹${amt.toLocaleString("en-IN")}. New balance ₹${(wallet.balance + amt).toLocaleString("en-IN")}.`);
-    toast.success(`Card recharged with ₹${amt.toLocaleString("en-IN")}`);
+    try {
+      const balance = await wallet.pay(orderId, approvalId);
+      setMethod("card");
+      await speak(language === "ta" ? `விஷன் கார்டில் செலுத்தப்பட்டது. மீதி ${balance.toLocaleString("en-IN")} ரூபாய்.` : `Paid with your Vision Card. Remaining balance ₹${balance.toLocaleString("en-IN")}.`);
+      onSubmitted("card", "paid");
+    } catch (error) { const message = error instanceof Error ? error.message : "Payment could not be completed"; toast.error(message); speak(message); }
+    finally { setSubmitting(false); }
   };
 
   const openUpi = (m: UpiApp) => {
@@ -281,7 +259,8 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
         <BiometricPrompt
           title={methodLabel(biometricFor)}
           amount={amount}
-          onSuccess={() => afterBiometric(biometricFor)}
+          orderId={orderId}
+          onSuccess={(approvalId) => afterBiometric(biometricFor, approvalId)}
           onCancel={() => { setBiometricFor(null); speak(language === "ta" ? "ரத்து செய்யப்பட்டது." : "Cancelled."); }}
         />
       )}
@@ -303,19 +282,7 @@ export default function PaymentPanel({ orderId, userId, amount, payeeName = "Sma
                 {language === "ta" ? "கார்டில் செலுத்து" : "Pay with card"}
               </Button>
             </div>
-            <div className="flex gap-2 items-center">
-              <Input
-                value={rechargeAmount}
-                onChange={(e) => setRechargeAmount(e.target.value.replace(/\D/g, ""))}
-                inputMode="numeric"
-                aria-label={language === "ta" ? "ரீசார்ஜ் தொகை" : "Recharge amount"}
-                className="h-9"
-              />
-              <Button size="sm" variant="secondary" onClick={doRecharge}>
-                <PlusCircle className="w-4 h-4 mr-1" />
-                {language === "ta" ? "ரீசார்ஜ்" : "Recharge"}
-              </Button>
-            </div>
+            <WalletRecharge />
             {wallet.balance < amount && (
               <p className="text-[11px] text-destructive">
                 {language === "ta" ? "இருப்பு போதவில்லை — ரீசார்ஜ் செய்யுங்கள்." : "Insufficient balance — recharge to pay with the card."}

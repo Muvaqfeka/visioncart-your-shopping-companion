@@ -1,3 +1,11 @@
+import productImagee5 from "@/assets/product-e5.jpg";
+import productImageg6 from "@/assets/product-g6.jpg";
+import productImageg7 from "@/assets/product-g7.jpg";
+import productImagep6 from "@/assets/product-p6.jpg";
+import productImagem2 from "@/assets/product-m2.jpg";
+import productImageh1 from "@/assets/product-h1.jpg";
+import productImageh2 from "@/assets/product-h2.jpg";
+import productImaged6 from "@/assets/product-d6.jpg";
 import shopImage0 from "@/assets/shop-product-0.asset.json";
 import shopImage1 from "@/assets/shop-product-1.asset.json";
 import shopImage2 from "@/assets/shop-product-2.asset.json";
@@ -94,7 +102,7 @@ export const products: Product[] = [
   { id: "e2", name: "Smart Fitness Watch", brand: "PulseTech", price: 1999, category: "electronics", features: ["Heart Rate Monitor", "GPS Tracking", "7-day Battery", "Water Resistant"], available: true, emoji: "⌚", image: shopImage8.url },
   { id: "e3", name: "Portable Bluetooth Speaker", brand: "BassWave", price: 699, category: "electronics", features: ["360° Sound", "Waterproof IPX7", "12h Playback", "Voice Assistant"], available: true, emoji: "🔊", image: shopImage9.url },
   { id: "e4", name: "Wireless Charging Pad", brand: "ChargeFast", price: 349, category: "electronics", features: ["15W Fast Charge", "LED Indicator", "Universal", "Slim Design"], available: true, emoji: "🔋", image: shopImage10.url },
-  { id: "e5", name: "Smart LED Bulb", brand: "GlowHome", price: 249, category: "electronics", features: ["16M Colors", "Wi-Fi Controlled", "Voice Compatible", "9W"], available: true, emoji: "💡", image: "https://images.unsplash.com/photo-1565636192335-3f48d6d50962?w=400&q=80" },
+  { id: "e5", name: "Smart LED Bulb", brand: "GlowHome", price: 249, category: "electronics", features: ["16M Colors", "Wi-Fi Controlled", "Voice Compatible", "9W"], available: true, emoji: "💡", image: productImagee5 },
   { id: "e6", name: "USB-C Power Bank 20000mAh", brand: "VoltCore", price: 1499, category: "electronics", features: ["20000 mAh", "22.5W Fast Charge", "Triple Port", "LED Display"], available: true, emoji: "🔌", image: shopImage12.url },
 
   // Groceries
@@ -103,8 +111,8 @@ export const products: Product[] = [
   { id: "g3", name: "Dark Chocolate Bar 85%", brand: "CocoaLux", price: 99, category: "groceries", features: ["85% Cacao", "No Added Sugar", "Vegan", "100g"], available: true, emoji: "🍫", image: shopImage15.url },
   { id: "g4", name: "Japanese Matcha Green Tea", brand: "ZenLeaf", price: 349, category: "groceries", features: ["Ceremonial Grade", "Stone Ground", "Organic", "30g Tin"], available: true, emoji: "🍵", image: shopImage16.url },
   { id: "g5", name: "Basmati Rice Premium", brand: "IndiaGold", price: 449, category: "groceries", features: ["Aged 2 Years", "Long Grain", "Aromatic", "5 Kg Pack"], available: true, emoji: "🍚", image: shopImage17.url },
-  { id: "g6", name: "Cold-Pressed Coconut Oil", brand: "KeralaPure", price: 299, category: "groceries", features: ["Cold Pressed", "Virgin", "1 Litre", "Glass Bottle"], available: true, emoji: "🥥", image: "https://images.unsplash.com/photo-1590338669998-cc11a82d6c46?w=400&q=80" },
-  { id: "g7", name: "Toor Dal Premium", brand: "AnnaPurna", price: 159, category: "groceries", features: ["Unpolished", "Hand Sorted", "1 Kg", "High Protein"], available: true, emoji: "🫘", image: "https://images.unsplash.com/photo-1599909533730-d5badf68d8d6?w=400&q=80" },
+  { id: "g6", name: "Cold-Pressed Coconut Oil", brand: "KeralaPure", price: 299, category: "groceries", features: ["Cold Pressed", "Virgin", "1 Litre", "Glass Bottle"], available: true, emoji: "🥥", image: productImageg6 },
+  { id: "g7", name: "Toor Dal Premium", brand: "AnnaPurna", price: 159, category: "groceries", features: ["Unpolished", "Hand Sorted", "1 Kg", "High Protein"], available: true, emoji: "🫘", image: productImageg7 },
 
   // Personal Care
   { id: "p1", name: "Hydrating Face Cream SPF30", brand: "GlowSkin", price: 299, category: "personal-care", features: ["SPF 30", "Hyaluronic Acid", "Lightweight", "All Skin Types"], available: true, emoji: "🧴", image: shopImage20.url },
@@ -112,11 +120,11 @@ export const products: Product[] = [
   { id: "p3", name: "Mineral Sunscreen SPF50+", brand: "SunShield", price: 199, category: "personal-care", features: ["SPF 50+", "Reef Safe", "Water Resistant", "Broad Spectrum"], available: true, emoji: "☀️", image: shopImage22.url },
   { id: "p4", name: "Organic Lip Balm Set", brand: "BeeNatural", price: 129, category: "personal-care", features: ["Pack of 4", "Beeswax", "Natural Flavors", "Moisturizing"], available: true, emoji: "💋", image: shopImage23.url },
   { id: "p5", name: "Bamboo Toothbrush Pack", brand: "EcoSmile", price: 149, category: "personal-care", features: ["Pack of 4", "Biodegradable", "Soft Bristles", "BPA Free"], available: true, emoji: "🪥", image: shopImage24.url },
-  { id: "p6", name: "Aloe Vera Body Lotion", brand: "FreshGlow", price: 199, category: "personal-care", features: ["100% Natural Aloe", "Non-Greasy", "400ml", "All Skin Types"], available: true, emoji: "🌿", image: "https://images.unsplash.com/photo-1570194065650-d99fb4bedf0a?w=400&q=80" },
+  { id: "p6", name: "Aloe Vera Body Lotion", brand: "FreshGlow", price: 199, category: "personal-care", features: ["100% Natural Aloe", "Non-Greasy", "400ml", "All Skin Types"], available: true, emoji: "🌿", image: productImagep6 },
 
   // Medicines
   { id: "m1", name: "Paracetamol 500mg Tablets", brand: "Dolo", price: 29, category: "medicines", features: ["Pack of 15", "Fever Relief", "Pain Relief", "Adult Use"], available: true, emoji: "💊", image: shopImage26.url },
-  { id: "m2", name: "Vitamin C Effervescent", brand: "Limcee", price: 99, category: "medicines", features: ["Pack of 20", "1000mg Vit C", "Orange", "Immunity"], available: true, emoji: "🍊", image: "https://images.unsplash.com/photo-1550572017-edd951aa8f72?w=400&q=80" },
+  { id: "m2", name: "Vitamin C Effervescent", brand: "Limcee", price: 99, category: "medicines", features: ["Pack of 20", "1000mg Vit C", "Orange", "Immunity"], available: true, emoji: "🍊", image: productImagem2 },
   { id: "m3", name: "Cough Syrup 100ml", brand: "Benadryl", price: 89, category: "medicines", features: ["100ml", "Dry Cough", "Non-Drowsy", "Adults & Kids"], available: true, emoji: "🧴", image: shopImage28.url },
   { id: "m4", name: "Multivitamin Daily Tablets", brand: "Revital", price: 249, category: "medicines", features: ["Pack of 30", "12 Vitamins", "Daily Use", "Energy"], available: true, emoji: "💪", image: shopImage29.url },
   { id: "m5", name: "Antiseptic Cream", brand: "Betadine", price: 65, category: "medicines", features: ["15g Tube", "Wound Care", "Antibacterial", "Fast Healing"], available: true, emoji: "🩹", image: shopImage30.url },
@@ -132,8 +140,8 @@ export const products: Product[] = [
   { id: "c6", name: "Soft Wool Shawl", brand: "Kashmir Loom", price: 999, category: "clothing", features: ["Warm Wool", "Hand-Embroidered", "Unisex", "Premium"], available: true, emoji: "🧣", image: shopImage38.url },
 
   // Home Essentials
-  { id: "h1", name: "Stainless Steel Pressure Cooker 5L", brand: "Prestige", price: 1899, category: "home", features: ["5 Litre", "Induction Base", "Safety Valve", "ISI Certified"], available: true, emoji: "🍲", image: "https://images.unsplash.com/photo-1584990347449-a8d8d3b3f3f3?w=400&q=80" },
-  { id: "h2", name: "Non-Stick Frying Pan 26cm", brand: "Hawkins", price: 799, category: "home", features: ["26cm", "Non-Stick Coat", "Induction Friendly", "Heat Resistant Handle"], available: true, emoji: "🍳", image: "https://images.unsplash.com/photo-1574966740793-2cb46b6dd31e?w=400&q=80" },
+  { id: "h1", name: "Stainless Steel Pressure Cooker 5L", brand: "Prestige", price: 1899, category: "home", features: ["5 Litre", "Induction Base", "Safety Valve", "ISI Certified"], available: true, emoji: "🍲", image: productImageh1 },
+  { id: "h2", name: "Non-Stick Frying Pan 26cm", brand: "Hawkins", price: 799, category: "home", features: ["26cm", "Non-Stick Coat", "Induction Friendly", "Heat Resistant Handle"], available: true, emoji: "🍳", image: productImageh2 },
   { id: "h3", name: "Bedsheet Cotton Double Bed", brand: "Bombay Dyeing", price: 899, category: "home", features: ["Pure Cotton", "Double Bed", "2 Pillow Covers", "Machine Washable"], available: true, emoji: "🛏️", image: shopImage41.url },
   { id: "h4", name: "Steel Water Bottle 1L", brand: "Milton", price: 349, category: "home", features: ["1 Litre", "Insulated", "Leak Proof", "BPA Free"], available: true, emoji: "🧴", image: shopImage42.url },
   { id: "h5", name: "LED Table Lamp", brand: "Philips", price: 599, category: "home", features: ["3-Step Dimming", "Eye-Care LED", "USB Powered", "Foldable Arm"], available: true, emoji: "🪔", image: shopImage43.url },
@@ -145,7 +153,7 @@ export const products: Product[] = [
   { id: "d3", name: "Farm Fresh Eggs", brand: "Suguna", price: 84, category: "essentials", unit: "Pack of 12", stock: 30, tamilName: "முட்டை", features: ["12 Eggs", "High Protein", "Farm Fresh", "Grade A"], available: true, emoji: "🥚", image: shopImage47.url },
   { id: "d4", name: "Fresh Curd", brand: "Aavin", price: 30, category: "essentials", unit: "400 g cup", stock: 18, tamilName: "தயிர்", features: ["Thick Set", "Probiotic", "No Preservatives", "400 g"], available: true, emoji: "🥣", image: shopImage48.url },
   { id: "d5", name: "Sugar", brand: "Madhur", price: 52, category: "essentials", unit: "1 kg", stock: 60, tamilName: "சர்க்கரை", features: ["Refined", "Sulphur Free", "1 Kg", "Sparkling White"], available: true, emoji: "🍬", image: shopImage49.url },
-  { id: "d6", name: "Iodised Salt", brand: "Tata", price: 28, category: "essentials", unit: "1 kg", stock: 55, tamilName: "உப்பு", features: ["Iodised", "Free Flow", "1 Kg", "Vacuum Evaporated"], available: true, emoji: "🧂", image: "https://images.unsplash.com/photo-1518110925495-b37e912cf2d3?w=400&q=80" },
+  { id: "d6", name: "Iodised Salt", brand: "Tata", price: 28, category: "essentials", unit: "1 kg", stock: 55, tamilName: "உப்பு", features: ["Iodised", "Free Flow", "1 Kg", "Vacuum Evaporated"], available: true, emoji: "🧂", image: productImaged6 },
   { id: "d7", name: "Whole Wheat Atta", brand: "Aashirvaad", price: 245, category: "essentials", unit: "5 kg", stock: 22, tamilName: "கோதுமை மாவு", features: ["100% Whole Wheat", "Chakki Fresh", "5 Kg", "High Fibre"], available: true, emoji: "🌾", image: shopImage51.url },
   { id: "d8", name: "Onion", brand: "Local Farm", price: 38, category: "essentials", unit: "1 kg", stock: 70, tamilName: "வெங்காயம்", features: ["Fresh", "Hand Picked", "1 Kg", "Medium Size"], available: true, emoji: "🧅", image: shopImage52.url },
   { id: "d9", name: "Tomato", brand: "Local Farm", price: 32, category: "essentials", unit: "1 kg", stock: 48, tamilName: "தக்காளி", features: ["Farm Fresh", "Firm & Ripe", "1 Kg", "Naturally Grown"], available: true, emoji: "🍅", image: shopImage53.url },
