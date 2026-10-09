@@ -39,7 +39,7 @@ export default function Product() {
 
   const doAdd = async () => {
     if (!product) return;
-    addItem(product);
+    if (!(await addItem(product))) return;
     pendingAdd.current = false;
     setStatus(language === "ta" ? "கார்ட்டில் சேர்க்கப்பட்டது" : "Added to cart");
     await speak(
@@ -73,8 +73,9 @@ export default function Product() {
   };
 
   const listen = () => {
-    speak(language === "ta" ? "கேட்கிறேன்." : "Listening.");
-    startListening({ onResult: (text) => handleVoice(text) });
+    speak(language === "ta" ? "கேட்கிறேன்." : "Listening.").then(() => {
+      startListening({ onResult: (text) => handleVoice(text) });
+    });
   };
 
   const { videoRef, isActive } = useBlinkDetection({
@@ -108,18 +109,18 @@ export default function Product() {
 
       <header className="sticky top-0 z-20 backdrop-blur-xl bg-background/70 border-b border-border">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(-1)} aria-label="Back" className="p-2 rounded-full quick-pill">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Back" className="quick-pill">
             <ArrowLeft className="w-4 h-4" />
-          </button>
+          </Button>
           <span className="font-display text-sm text-foreground flex-1 truncate">{product.name}</span>
-          <button onClick={() => navigate("/checkout")} className="relative p-2 rounded-full quick-pill" aria-label="Cart">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/checkout")} className="relative quick-pill" aria-label="Cart">
             <ShoppingCart className="w-4 h-4" />
             {itemCount > 0 && (
               <span className="absolute -top-1 -right-1 quick-badge text-[10px] font-display rounded-full w-5 h-5 grid place-items-center">
                 {itemCount}
               </span>
             )}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -135,7 +136,7 @@ export default function Product() {
           <div className="relative aspect-square bg-muted">
             <img src={product.image} alt={`${product.name} — ${product.brand}`} className="w-full h-full object-cover" loading="lazy" />
             <span className="absolute top-3 left-3 quick-badge text-[11px] font-display px-2.5 py-1 rounded-full flex items-center gap-1">
-              <Timer className="w-3 h-3" /> 10 min
+              <Timer className="w-3 h-3" /> 10 min · estimate
             </span>
           </div>
           <div className="p-4 space-y-3">
