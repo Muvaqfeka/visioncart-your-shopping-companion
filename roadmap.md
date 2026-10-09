@@ -1,4 +1,4 @@
-- [ ] Refresh the shop to a bright quick-commerce design with a 10-minute delivery estimate.
+- [ ] Match the supplied Zepto reference with a bright shop, photographic categories, product shelves and prominent hands-free controls.
 - [ ] Refresh stock on product visits and prevent unavailable/over-limit additions.
 - [ ] Implement server-verified UPI wallet recharge; block credits until verified.
 - [ ] Replace simulated fingerprint approval with secure alternate authentication.

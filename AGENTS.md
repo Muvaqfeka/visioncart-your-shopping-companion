@@ -4,3 +4,4 @@
 - Verify UPI recharges through the payment provider before an atomic, idempotent wallet credit.
 - Use account password reauthentication as the secure payment fallback until enrolled, server-verified WebAuthn credentials are available; never simulate biometric success.
 - Keep the existing voice/blink navigation and manual fallback controls available during storefront design changes.
+- Use the shared ProductCard for shopping shelves and category listings, with semantic global surface tokens; this keeps product actions and visual presentation consistent.

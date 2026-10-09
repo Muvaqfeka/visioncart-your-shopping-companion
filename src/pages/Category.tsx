@@ -7,6 +7,7 @@ import { speak, useSpeechRecognition, matchCommand, COMMAND_PHRASES } from "@/ho
 import { getCategoryById, getProductsByCategory } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/ProductCard";
 
 export default function Category() {
@@ -181,14 +182,14 @@ export default function Category() {
     });
   };
 
-  const handleDoubleBlink = () => {
+  const handleDoubleBlink = async () => {
     // Highest priority: confirm a pending voice "add to cart"
     if (pendingAddRef.current !== null) {
       const idx = pendingAddRef.current;
       pendingAddRef.current = null;
       const p = products[idx];
       if (p) {
-        addItem(p);
+        if (!(await addItem(p))) return;
         const msg = language === "ta"
           ? `உறுதிப்படுத்தப்பட்டது. ${p.name} கார்ட்டில் சேர்க்கப்பட்டது. இப்போது ${itemCount + 1} பொருட்கள் உள்ளன. கார்ட்டுக்கு செல்ல "go to cart" என்று சொல்லுங்கள்.`
           : `Confirmed. ${p.name} added to cart. You now have ${itemCount + 1} items. Say go to cart to checkout.`;
@@ -213,7 +214,7 @@ export default function Category() {
       }
       if (named.stage === 1) {
         // Stage 2: add to cart
-        addItem(p);
+        if (!(await addItem(p))) return;
         namedStageRef.current = { index: null, stage: 0 };
         const msg = language === "ta"
           ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது. கார்ட்டுக்கு செல்ல "go to cart" என்று சொல்லுங்கள்.`
@@ -254,31 +255,32 @@ export default function Category() {
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
         <header className="flex items-center gap-4 mb-6">
-          <button onClick={() => navigate("/")} className="glass p-2 rounded-lg hover:shadow-neon transition-all">
+          <Button onClick={() => navigate("/")} className="glass p-2 rounded-lg hover:shadow-neon transition-all">
             <ArrowLeft className="w-5 h-5 text-muted-foreground" />
-          </button>
+          </Button>
           <div className="flex-1">
             <h1 className="font-display text-xl font-bold text-foreground text-glow">
-              {category.emoji} {category.name}
+              {category.name}
             </h1>
             <p className="text-xs text-muted-foreground">{products.length} {t("products")}</p>
           </div>
           {itemCount > 0 && (
-            <button
+            <Button
               onClick={() => navigate("/checkout")}
               className="glass px-3 py-2 rounded-lg text-primary font-display text-xs shadow-neon flex items-center gap-1"
             >
               <ShoppingCart className="w-4 h-4" />
               {itemCount}
-            </button>
+            </Button>
           )}
           <div className="w-12 h-12 rounded-full overflow-hidden border border-glow shadow-neon">
             <video ref={videoRef} className="w-full h-full object-cover scale-x-[-1]" playsInline muted />
           </div>
         </header>
 
+        <div className="flex gap-2 mb-4"><Button onClick={handleSingleBlink}><Mic />{language === "ta" ? "பேசுங்கள்" : "Speak to shop"}</Button><Button variant="outline" onClick={handleDoubleBlink}><Eye />{language === "ta" ? "உறுதி" : "Confirm / read"}</Button><Button variant="outline" onClick={helpSpeech}>{t("help")}</Button></div>
         {/* Status */}
-        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass rounded-lg p-3 mb-3 flex items-center gap-3">
+        <motion.div key={status} initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="status" aria-live="polite" className="glass rounded-lg p-3 mb-3 flex items-center gap-3">
           {isListening ? <Mic className="w-4 h-4 text-primary animate-pulse" /> : <Eye className="w-4 h-4 text-primary" />}
           <span className="text-sm text-primary font-display">{status}</span>
         </motion.div>
@@ -295,31 +297,22 @@ export default function Category() {
         )}
 
         {/* Products */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {products.map((product, i) => (
             <div key={product.id} className="relative">
               <ProductCard product={product} isActive={i === activeIndex} index={i} />
-              <button
-                onClick={() => {
-                  addItem(product);
-                  setStatus(`✅ ${t("addedToCart")}: ${product.name}`);
-                  speak(language === "ta" ? `கார்ட்டில் சேர்க்கப்பட்டது. ${product.name}.` : `Added to cart. ${product.name}.`);
-                }}
-                className="absolute bottom-2 right-2 glass p-2 rounded-full shadow-neon hover:shadow-neon-lg transition-all z-10"
-              >
-                <Plus className="w-4 h-4 text-primary" />
-              </button>
+
             </div>
           ))}
         </div>
 
         {/* Action buttons */}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <button
-            onClick={() => {
+          <Button
+            onClick={async () => {
               const p = products[activeIndex];
               if (p) {
-                addItem(p);
+                if (!(await addItem(p))) return;
                 setStatus(`✅ ${p.name} ${t("addedToCart")}!`);
                 speak(language === "ta" ? `${p.name} கார்ட்டில் சேர்க்கப்பட்டது.` : `${p.name} added to cart.`);
               }
@@ -328,22 +321,22 @@ export default function Category() {
           >
             <Plus className="w-4 h-4" />
             {t("addToCart")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => readCart()}
             className="glass px-5 py-3 rounded-xl font-display text-sm text-muted-foreground hover:text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
           >
             <ShoppingCart className="w-4 h-4" />
             {t("viewCart")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => navigate("/checkout")}
             className="glass px-5 py-3 rounded-xl font-display text-sm text-primary shadow-neon hover:shadow-neon-lg transition-all flex items-center gap-2"
           >
             <ShoppingCart className="w-4 h-4" />
             {t("goToCart")}
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => {
               speak(language === "ta" ? "செக்அவுட்டுக்கு செல்கிறது." : "Proceeding to checkout.").then(() => navigate("/checkout"));
             }}
@@ -351,7 +344,7 @@ export default function Category() {
           >
             <ShoppingCart className="w-4 h-4" />
             {t("checkout")}
-          </button>
+          </Button>
         </div>
 
         {/* Controls hint */}

@@ -1,70 +1,28 @@
-import { motion } from "framer-motion";
-import { ShoppingCart } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Plus, Loader2 } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { Button } from "@/components/ui/button";
 import { speak } from "@/hooks/useSpeech";
 
-interface Props {
-  product: Product;
-  isActive?: boolean;
-  index?: number;
-}
-
-export default function ProductCard({ product, isActive, index = 0 }: Props) {
+interface Props { product: Product; isActive?: boolean; index?: number; }
+export default function ProductCard({ product, isActive }: Props) {
   const { addItem } = useCart();
-
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    addItem(product);
-    speak(`${product.name} added to cart.`);
+  const { language } = useLanguage();
+  const [busy, setBusy] = useState(false);
+  const add = async () => {
+    setBusy(true);
+    try { if (await addItem(product)) speak(language === "ta" ? `${product.tamilName || product.name} கார்ட்டில் சேர்க்கப்பட்டது.` : `${product.name} added to cart.`); }
+    finally { setBusy(false); }
   };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.4 }}
-      className={`glass rounded-xl overflow-hidden transition-all duration-300 ${
-        isActive ? "shadow-neon-lg ring-2 ring-primary/60 scale-[1.02]" : "hover:shadow-neon"
-      }`}
-    >
-      <div className="h-36 bg-gradient-to-br from-primary/10 to-accent/15 overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover"
-          loading="lazy"
-        />
-      </div>
-      <div className="p-4 space-y-2">
-        <h3 className="font-display text-sm font-semibold text-foreground leading-tight truncate">
-          {product.name}
-        </h3>
-        <p className="text-xs text-muted-foreground">{product.brand}</p>
-        <div className="flex items-center justify-between">
-          <span className="font-display text-lg font-bold text-primary text-glow">
-            ₹{product.price.toLocaleString("en-IN")}
-          </span>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-              product.available
-                ? "bg-primary/15 text-primary"
-                : "bg-destructive/15 text-destructive"
-            }`}
-          >
-            {product.available ? "In Stock" : "Sold Out"}
-          </span>
-        </div>
-        {product.available && (
-          <button
-            onClick={handleAddToCart}
-            className="w-full mt-2 glass px-3 py-2 rounded-lg text-xs font-display font-semibold text-primary hover:shadow-neon transition-all flex items-center justify-center gap-1.5"
-          >
-            <ShoppingCart className="w-3.5 h-3.5" />
-            Add to Cart
-          </button>
-        )}
-      </div>
-    </motion.div>
-  );
+  return <article className={`border rounded-lg overflow-hidden bg-card flex flex-col h-full ${isActive ? "border-primary ring-2 ring-primary/15" : "border-border"}`}>
+    <Link to={`/product/${product.id}`} className="block aspect-square bg-muted overflow-hidden" aria-label={`View ${product.name}`}><img src={product.image} alt={product.name} className="w-full h-full object-cover" loading="lazy" /></Link>
+    <div className="p-3 flex flex-col flex-1 gap-2">
+      <Link to={`/product/${product.id}`} className="text-sm font-semibold leading-snug min-h-10 break-words">{language === "ta" ? product.tamilName || product.name : product.name}</Link>
+      <p className="text-xs text-muted-foreground">{product.unit || product.brand}</p>
+      <div className="flex items-center justify-between gap-1 mt-auto pt-1"><span className="font-bold text-sm">₹{product.price.toLocaleString("en-IN")}</span><Button variant="outline" size="sm" className="text-primary border-primary/40 px-2" onClick={add} disabled={busy || !product.available} aria-label={`Add ${product.name} to cart`}>{busy ? <Loader2 className="animate-spin" /> : <Plus />}{product.available ? (language === "ta" ? "சேர்" : "ADD") : (language === "ta" ? "இல்லை" : "Sold out")}</Button></div>
+    </div>
+  </article>;
 }
